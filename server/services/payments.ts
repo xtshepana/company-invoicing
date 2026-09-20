@@ -151,3 +151,41 @@ export async function getInvoicePaymentHistory(invoiceId: string): Promise<Invoi
 
   return [...paymentEntries, ...creditEntries].sort((a, b) => (a.date < b.date ? 1 : -1));
 }
+
+function currentMonthStart(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10);
+}
+
+/** For the dashboard — cash received this month, naturally bounded to one month's rows. */
+export async function getPaidThisMonth(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.from("payments").select("amount").gte("payment_date", currentMonthStart());
+  return (data ?? []).reduce((sum, r) => sum + r.amount, 0);
+}
+
+export interface RecentPaymentItem {
+  id: string;
+  customerName: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: string;
+}
+
+/** For the dashboard's "recent payments" list. */
+export async function getRecentPayments(limit: number): Promise<RecentPaymentItem[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("payments")
+    .select("id, amount, payment_date, payment_method, customers(company_name)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    customerName: p.customers?.company_name ?? "—",
+    amount: p.amount,
+    paymentDate: p.payment_date,
+    paymentMethod: p.payment_method,
+  }));
+}
