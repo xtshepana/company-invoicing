@@ -83,7 +83,7 @@ invited by an administrator.
 app/            Next.js App Router routes ((auth) = login/forgot/reset password, (app) = the authenticated shell, api/pdf + api/cron + api/bank-transactions + api/reports = route handlers outside proxy.ts)
 components/     UI components (components/ui = shadcn primitives; layout/, auth/, settings/, users/, documents/, bank/, credit-notes/)
 lib/            Shared code: env (env.ts server-only / env-public.ts), supabase/ clients, config/, validations/ (zod), money.ts, documents.ts, email/ (resend-client, templates), pdf/ (per-document *-pdf.tsx + render-*.tsx wrappers for use from plain .ts server actions), bank-import/ (client-side file parsing + column-mapping normalization, kept dependency-free of the server)
-server/         Server-only business logic: services/ (auth, audit, email, users, dashboard, company-settings, audit-log-query, customers, products, quotes, invoices, payments, statements, recurring-invoices, bank-transactions, credit-notes, reports) and actions/ (Server Actions)
+server/         Server-only business logic: services/ (auth, audit, email, users, dashboard, company-settings, audit-log-query, customers, products, quotes, invoices, payments, statements, recurring-invoices, bank-transactions, credit-notes, reports, backup) and actions/ (Server Actions)
 types/          Hand-written Supabase `Database` type (types/database.ts)
 supabase/       SQL migrations, applied in filename order
 tests/          tests/unit (Vitest), tests/e2e (Playwright, added as UI features land)
@@ -341,6 +341,18 @@ and both reports rendering plus their CSV exports (`reports.spec.ts`).
 account (see "e2e tests" above for the one manual SQL step it can't do
 itself). Getting this green surfaced a real regression (postmortem #6)
 that no manual click-through or unit test had exercised.
+
+**Phase 9 done:** a full-database JSON export for disaster recovery
+(`GET /api/admin/export`, `owner_admin` only — checked directly with
+`getCurrentProfile()`, same pattern as the PDF/CSV export routes, not the
+throwing `requireAdmin()` helper, so the route controls its own 401 vs 403).
+`server/services/backup.ts` reads every business table via the
+service-role client (the one legitimate reason to bypass RLS and module
+permissions entirely) and returns one JSON file. Export-only — there's no
+restore path, matching what was actually asked for rather than building a
+speculative import pipeline nothing exercises. Surfaced on Settings → a
+new "Backup" tab. Every export is itself audit-logged
+(`backup.exported`), same as any other admin action.
 
 **Not yet built:** automatic invoice-level payment matching beyond what
 `auto_match_bank_transactions` does. See the phase list in the original

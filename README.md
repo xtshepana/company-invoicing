@@ -127,3 +127,9 @@ full acceptance-test path against a real production build and the real
 Supabase project — see `CLAUDE.md` for how to run it (it needs a
 dedicated test account bootstrapped once via `scripts/create-e2e-user.mjs`
 plus one manual SQL step).
+
+**Phase 9 (done):** a full-database JSON backup/export
+(`GET /api/admin/export`, `owner_admin` only), covering every business
+table via the service-role client so it bypasses RLS entirely. This is
+export-only — there's no restore path — and every download is recorded in
+the audit log. Available from Settings → Backup.
