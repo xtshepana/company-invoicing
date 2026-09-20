@@ -88,24 +88,20 @@ export async function getCustomerInvoiceSummary(customerId: string): Promise<Cus
   };
 }
 
-/** For the dashboard/reports — real aggregate figures, not placeholders. */
+/**
+ * For the dashboard/reports — real aggregate figures, not placeholders.
+ * Computed in SQL (get_invoice_summary_totals, 0023_...) rather than
+ * pulling every invoice row into JS to reduce — see that migration.
+ */
 export async function getInvoiceSummaryTotals() {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.from("invoices").select("total, amount_paid, balance_due, status, due_date");
+  const { data, error } = await supabase.rpc("get_invoice_summary_totals").single();
+  if (error || !data) throw new Error("Unable to load invoice summary totals.");
 
-  const today = new Date().toISOString().slice(0, 10);
-  const rows = data ?? [];
-
-  const totalSales = rows
-    .filter((r) => r.status !== "cancelled" && r.status !== "void")
-    .reduce((sum, r) => sum + r.total, 0);
-  const totalPaid = rows.reduce((sum, r) => sum + r.amount_paid, 0);
-  const outstanding = rows
-    .filter((r) => r.status !== "cancelled" && r.status !== "void")
-    .reduce((sum, r) => sum + (r.balance_due ?? 0), 0);
-  const overdue = rows
-    .filter((r) => r.status !== "cancelled" && r.status !== "void" && (r.balance_due ?? 0) > 0 && r.due_date < today)
-    .reduce((sum, r) => sum + (r.balance_due ?? 0), 0);
-
-  return { totalSales, totalPaid, outstanding, overdue };
+  return {
+    totalSales: data.total_sales,
+    totalPaid: data.total_paid,
+    outstanding: data.outstanding,
+    overdue: data.overdue,
+  };
 }

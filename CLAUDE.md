@@ -177,6 +177,14 @@ sweep it manually (`delete ... where company_name like 'E2E%'`, matching
 - `0022_fix_record_payment_enum_cast_again.sql` — restores the
   `::public.invoice_status` cast that 0020's drop+recreate of
   `record_payment` accidentally dropped (see postmortem #6)
+- `0023_perf_invoice_summary_and_index.sql` — partial index on
+  `invoices(balance_due) where balance_due > 0` (five call sites filter on
+  it with nothing supporting it before this) and
+  `get_invoice_summary_totals()`, a plain (non-`security definer`) SQL
+  function that computes the dashboard's sales/paid/outstanding/overdue
+  totals in Postgres instead of pulling every invoice row into JS to
+  reduce there — naturally governed by the existing `invoices_select` RLS
+  policy since it runs as the calling role.
 
 Supabase project ref: `wmsrbfnnpmbrbbhollxo` (see `SETUP.md` for the
 service-role key you still need to add to `.env.local` — it can't be
@@ -368,6 +376,29 @@ into `/payments/new` with the right customer pre-selected, instead of the
 blind customer search that was the only option before. Also fetched via
 the existing `/api/bank-transactions/[id]/candidates` route (now returns
 both `candidates` and `invoiceCandidates` in one round trip).
+
+**Performance/accessibility audit (done):** `getCurrentProfile()`
+(`server/services/auth.ts`) and `getCompanySettings()`
+(`lib/config/system-settings.ts`) are now wrapped in React's `cache()` —
+both are called from the app-shell layout and again from nearly every
+page under it (~80 call sites), so this dedupes the auth check and the
+company-settings read to one Supabase round trip per request instead of
+two-plus. The dashboard's invoice summary totals moved from a JS
+`.reduce()` over every invoice row into SQL (`get_invoice_summary_totals`,
+see `0023_...` above), and `invoices(balance_due) where balance_due > 0`
+got a partial index since five different call sites filter on it.
+Accessibility: added `aria-label`s to the icon-only controls that had
+none (mobile nav toggle, account menu, remove-line-item, edit-product,
+and the shared list search input — none had an accessible name usable by
+a screen reader before this), and `CardTitle` (`components/ui/card.tsx`)
+now renders as a real `<h3>` instead of a plain `<div>` — pages built
+entirely from `Card`s (e.g. a customer's detail page, which had ten
+`CardTitle`s and only one real heading before this) now have a navigable
+heading structure. Deliberately left alone: further SQL-side aggregation
+for the aging report and reminder-cron parallelization — both are real
+but lower-priority, and the cron's per-invoice sequential processing is
+partly intentional (email sends shouldn't be fired concurrently against
+the provider).
 
 See the phase list in the original build spec — this closes out every
 module it named.

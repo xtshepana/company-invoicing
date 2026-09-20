@@ -210,6 +210,7 @@ export function LineItemsEditor({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
+                    aria-label="Remove line item"
                     onClick={() => removeLine(line.key)}
                     disabled={lines.length <= 1}
                   >

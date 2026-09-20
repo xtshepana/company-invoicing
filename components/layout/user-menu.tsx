@@ -34,7 +34,7 @@ const ROLE_LABELS: Record<Profile["role"], string> = {
 export function UserMenu({ profile }: { profile: Profile }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" className="h-9 w-9 rounded-full p-0" />}>
+      <DropdownMenuTrigger render={<Button variant="ghost" className="h-9 w-9 rounded-full p-0" aria-label="Account menu" />}>
         <Avatar className="h-9 w-9">
           <AvatarFallback>{initials(profile.full_name, profile.email)}</AvatarFallback>
         </Avatar>

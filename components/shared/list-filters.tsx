@@ -54,6 +54,7 @@ export function ListFilters({
         <Input
           className="pl-8"
           placeholder={searchPlaceholder}
+          aria-label={searchPlaceholder}
           defaultValue={searchValue}
           onChange={(e) => handleSearchChange(e.target.value)}
         />
