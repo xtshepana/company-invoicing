@@ -185,6 +185,12 @@ sweep it manually (`delete ... where company_name like 'E2E%'`, matching
   totals in Postgres instead of pulling every invoice row into JS to
   reduce there — naturally governed by the existing `invoices_select` RLS
   policy since it runs as the calling role.
+- `0024_perf_aging_report_sql.sql` — `get_aging_report(p_as_of date)`,
+  the same fix applied to the accounts-receivable aging report: buckets
+  and sums every outstanding invoice by days-overdue in one grouped SQL
+  query (`p_as_of - due_date` does the day-difference math, since both
+  are plain `date` columns) instead of fetching every outstanding invoice
+  and bucketing in JS.
 
 Supabase project ref: `wmsrbfnnpmbrbbhollxo` (see `SETUP.md` for the
 service-role key you still need to add to `.env.local` — it can't be
@@ -394,11 +400,16 @@ a screen reader before this), and `CardTitle` (`components/ui/card.tsx`)
 now renders as a real `<h3>` instead of a plain `<div>` — pages built
 entirely from `Card`s (e.g. a customer's detail page, which had ten
 `CardTitle`s and only one real heading before this) now have a navigable
-heading structure. Deliberately left alone: further SQL-side aggregation
-for the aging report and reminder-cron parallelization — both are real
-but lower-priority, and the cron's per-invoice sequential processing is
-partly intentional (email sends shouldn't be fired concurrently against
-the provider).
+heading structure. **Aging report SQL aggregation (done):** the accounts-receivable aging
+report's bucketing/summing moved from a JS loop over every outstanding
+invoice into `get_aging_report()` (see `0024_...` above) — same fix as
+the invoice summary totals, same payoff as the invoices table grows.
+`getAgingReport()` in `server/services/reports.ts` now only reduces over
+one row per customer (the grand-total row), not one row per invoice.
+
+Deliberately left alone: reminder-cron parallelization — real but
+lower-priority, and partly intentional as-is (email sends shouldn't be
+fired concurrently against the provider).
 
 See the phase list in the original build spec — this closes out every
 module it named.

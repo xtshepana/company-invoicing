@@ -108,47 +108,31 @@ export interface AgingReportResult {
   totals: Omit<AgingRow, "customerId" | "customerName">;
 }
 
-/** Accounts-receivable aging as of a given date — buckets every outstanding invoice balance by how overdue its due date is. */
+/**
+ * Accounts-receivable aging as of a given date — buckets every outstanding
+ * invoice balance by how overdue its due date is. Bucketing/summing is
+ * done in SQL (get_aging_report, 0024_...) rather than fetching every
+ * outstanding invoice and reducing in JS — see that migration. Per-row
+ * totals come straight from the grouped query; the grand-total row is
+ * still summed here, but over one row per customer rather than one row
+ * per invoice.
+ */
 export async function getAgingReport(asOfDate: string): Promise<AgingReportResult> {
   const supabase = await createSupabaseServerClient();
 
-  const { data: invoices } = await supabase
-    .from("invoices")
-    .select("customer_id, due_date, balance_due, customers(company_name)")
-    .gt("balance_due", 0)
-    .not("status", "in", "(cancelled,void)");
+  const { data, error } = await supabase.rpc("get_aging_report", { p_as_of: asOfDate });
+  if (error) throw new Error("Unable to load the aging report.");
 
-  const asOf = new Date(`${asOfDate}T00:00:00Z`).getTime();
-  const byCustomer = new Map<string, AgingRow>();
-
-  for (const inv of invoices ?? []) {
-    const daysOverdue = Math.round((asOf - new Date(`${inv.due_date}T00:00:00Z`).getTime()) / 86_400_000);
-    const balance = inv.balance_due ?? 0;
-
-    let row = byCustomer.get(inv.customer_id);
-    if (!row) {
-      row = {
-        customerId: inv.customer_id,
-        customerName: inv.customers?.company_name ?? "—",
-        current: 0,
-        days1to30: 0,
-        days31to60: 0,
-        days61to90: 0,
-        days90plus: 0,
-        total: 0,
-      };
-      byCustomer.set(inv.customer_id, row);
-    }
-
-    if (daysOverdue <= 0) row.current += balance;
-    else if (daysOverdue <= 30) row.days1to30 += balance;
-    else if (daysOverdue <= 60) row.days31to60 += balance;
-    else if (daysOverdue <= 90) row.days61to90 += balance;
-    else row.days90plus += balance;
-    row.total += balance;
-  }
-
-  const rows = Array.from(byCustomer.values()).sort((a, b) => b.total - a.total);
+  const rows: AgingRow[] = (data ?? []).map((row) => ({
+    customerId: row.customer_id,
+    customerName: row.customer_name ?? "—",
+    current: row.bucket_current,
+    days1to30: row.bucket_1_30,
+    days31to60: row.bucket_31_60,
+    days61to90: row.bucket_61_90,
+    days90plus: row.bucket_90_plus,
+    total: row.total,
+  }));
 
   const totals = rows.reduce(
     (acc, row) => ({
