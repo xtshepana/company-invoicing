@@ -496,6 +496,39 @@ has a status filter including "overdue"), the existing `/payments` list,
 and the aging report's per-customer `total` column (which already *is*
 each customer's current balance).
 
+**Dashboard metrics (done):** the dashboard only showed all-time
+sales/paid/outstanding/overdue totals and an admin-only audit-log feed —
+missing several metrics the build spec explicitly calls for: customer
+count, unpaid/overdue invoice counts, invoiced/paid *this month*, and
+recent-invoices/recent-payments lists (distinct from the audit log,
+which mixes in logins, settings changes, etc.). Added
+`getActiveCustomerCount()` (customers.ts), `getInvoiceCountStats()` +
+`getRecentInvoices()` (invoices.ts), and `getPaidThisMonth()` +
+`getRecentPayments()` (payments.ts) — counts use
+`{count: "exact", head: true}` (no rows fetched), and the month-scoped
+sums are naturally bounded to one month's rows rather than the
+all-time-scan mistakes fixed earlier in the audit. Each new card/list is
+gated behind the same per-module `hasModuleAccess()` checks the existing
+sales/outstanding cards already use. Verified live against real fixture
+data down to the edge cases: a `void` invoice is correctly excluded from
+both "unpaid" and "invoiced this month" (confirmed against the actual
+per-invoice status list), and a `paid` invoice is correctly excluded
+from "unpaid" — the displayed unpaid count of 1 matches exactly one
+`partially_paid` invoice out of three total.
+
+**"Converted" quote status (done):** a converted quote's underlying
+`status` column stays whatever it was at conversion time (typically
+`accepted`) — `converted_invoice_id` is the actual signal, and
+`quote-actions-bar.tsx` already used it to swap the Convert button for
+a "View Invoice" link. The status *badge* on the list and detail pages
+didn't make the same distinction, though — it kept showing the raw
+underlying status. Added `getQuoteDisplayStatus()`
+(`lib/validations/quotes.ts`), the one place that now decides "Converted"
+vs. the raw status label, used by both `/quotes` and `/quotes/[id]`
+instead of each page's own now-removed local `STATUS_LABELS`/
+`STATUS_VARIANTS` copies. Verified live: QUO-000001 (accepted, then
+converted) now reads "Converted" on both pages instead of "Accepted".
+
 **Permission enforcement tests (done):** the build spec explicitly names
 "verify Staff cannot perform restricted accounting/admin actions" as a
 testing requirement, and there was no test coverage for it at all —
