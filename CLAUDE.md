@@ -446,6 +446,32 @@ cadence (Phase 9's export is intentionally export-only/on-demand, not a
 scheduled job writing somewhere — there's no storage destination decided
 for that, and inventing one wasn't asked for).
 
+**Reminder-cron timeout review (done):** `app/api/cron/daily/route.tsx`
+had two real (not theoretical) risks under its 60s `maxDuration`.
+`sendDueReminders()` fetched *every* outstanding invoice in the system —
+now filtered to `due_date in (...)` for the exact five dates
+`REMINDER_OFFSET_DAYS` can ever match (backed by the existing `due_date`
+index), since a reminder only ever fires at one of those offsets anyway;
+this is a precise SQL push-down, not a heuristic — it returns the exact
+same candidate set, just without scanning invoices nowhere near a
+reminder date. `generateDueRecurringInvoices()` fully serialized
+per-recurring-invoice work that included a PDF render plus a Resend call
+when `auto_send_email` was set — split into two phases via the new
+`mapWithConcurrency()` (`lib/concurrency.ts`): the DB-only generation
+step (existence check, RPC, audit log — no external rate limit, each row
+independent) runs with concurrency 10, and only the email-sending step
+runs separately with concurrency 2, matching Resend's documented ~2
+req/s limit. Same fix, same reasoning, applied to `sendDueReminders`'s
+own email step. Verified live against a production build: the endpoint
+still returns the same response shape with zero errors, and unsetting
+`CRON_SECRET` still 401s correctly. Not exercised live: the actual
+`generated`/`sent` code paths, since that would require creating due
+recurring invoices or reminder-eligible invoices in the live production
+database, which wasn't something to do without being asked — the fix was
+verified by code review of the exact offset-day arithmetic (`addDays`/
+`dateDiffInDays` are exact inverses, both plain UTC date math) rather
+than by observing a live send.
+
 See the phase list in the original build spec — this closes out every
 module it named.
 
