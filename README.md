@@ -209,3 +209,9 @@ floored.
 **Customer profile: quotes and credit notes (done):** a customer's
 profile page now also shows their recent quotes and recent credit
 notes, alongside the invoices/payments/balance it already showed.
+
+**Recurring-invoice idempotency e2e coverage (done):** a new end-to-end
+test actually generates a recurring invoice via the daily cron, runs
+the cron a second time, and confirms no duplicate was created —
+closing the last of the critical scenarios the build spec names
+explicitly.

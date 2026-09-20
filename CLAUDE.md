@@ -606,6 +606,29 @@ ABC Technologies' profile now shows QUO-000001 as "Converted" under
 "Recent credit notes" correctly renders its empty state rather than
 erroring, since that fixture customer has none.
 
+**Recurring-invoice idempotency e2e coverage (done):** the build spec
+names this explicitly ("GENERATE RECURRING INVOICE → RUN GENERATION
+AGAIN → VERIFY NO DUPLICATE", and again in the Testing section:
+"Recurring invoices: Generate, Run twice, Confirm no duplicate"), and
+`recurring-invoices.spec.ts` only tested the lifecycle UI
+(create/skip/pause/resume/cancel) — nothing ever actually generated an
+invoice, since there's no manual "Generate Now" button; generation only
+happens via the daily cron. The new test hits `/api/cron/daily`
+directly with the real `CRON_SECRET` (already loaded into
+`process.env` by `playwright.config.ts`'s `loadDotEnvLocal()`) rather
+than going through a page — a fresh recurring invoice defaults to
+`auto_generate: true`, `auto_send_email: false`, and a start date of
+today, so it's immediately due with no backdating needed. Confirmed via
+`generate_recurring_invoice()`'s own SQL (`0019_...`) that
+`next_invoice_date` advances in the same call that creates the
+invoice, which is *why* a second cron run doesn't even see this
+recurring invoice as due anymore, rather than seeing it and correctly
+no-op'ing — the real assertion is the "Generated invoices" table on the
+recurring invoice's detail page staying at exactly one row after both
+runs. Actually run, not just written —
+`npx playwright test tests/e2e/recurring-invoices.spec.ts` (3 passed,
+~1 minute including build).
+
 See the phase list in the original build spec — this closes out every
 module it named.
 
