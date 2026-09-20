@@ -84,16 +84,19 @@ deploys, `hbuilds/versions/...` on disk, a "Runtime Logs" panel instead of
 classic hPanel tools) — this is the case for most setups following this
 guide — **hPanel does not expose Cron Jobs for this hosting type at all**,
 even though it's on the same account as other sites that do have it. No
-action is needed here: `instrumentation.ts` schedules this same job
-in-process instead, since the Node.js server already runs as one
-persistent process rather than spinning up per request. It fires ~30
-seconds after the server starts, then every 24 hours after that — not
-pinned to a specific low-traffic hour, but harmless to run at any hour
-given the idempotency guarantee below, and only active when
-the `start` npm script (a local `npm run dev` never triggers it) —
-deliberately not gated on `NODE_ENV`, since some hosts (Hostinger's
-Node.js Web App hosting among them) pre-set `NODE_ENV=development` in
-the container regardless of which script actually runs.
+action is needed here: `lib/cron-trigger.ts`'s `maybeTriggerDailyCron()`,
+called from the `(app)` layout on every authenticated page load, fires
+this job in the background instead. A boot-time timer (the first thing
+tried) doesn't work on this host — its Node.js processes run under
+LiteSpeed's `lsnode.js`, which cycles processes on a FastCGI-like model
+rather than keeping one alive indefinitely, so a `setTimeout`/`setInterval`
+scheduled once at startup can't reliably survive long enough to fire.
+Riding along on real requests sidesteps that: any staff member loading any
+page during the day triggers the check, an in-memory per-process flag
+avoids refiring on every navigation, and the job's own idempotency (below)
+makes it harmless if multiple short-lived processes each fire it once on
+the same day. The tradeoff is it no longer runs at a specific low-traffic
+hour — it runs shortly after the first page load of the day instead.
 
 To test manually regardless of which path applies to you:
 
