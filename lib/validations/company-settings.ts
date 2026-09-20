@@ -1,4 +1,12 @@
 import { z } from "zod";
+import { HEX_COLOR_PATTERN } from "@/lib/color-utils";
+
+export const appearanceSchema = z.object({
+  brand_color: z
+    .union([z.literal(""), z.string().trim().regex(HEX_COLOR_PATTERN, "Must be a hex color like #2563eb.")])
+    .transform((value) => (value === "" ? null : value)),
+});
+export type AppearanceInput = z.infer<typeof appearanceSchema>;
 
 export const companyProfileSchema = z.object({
   company_name: z.string().trim().min(1, "Company name is required.").max(200),

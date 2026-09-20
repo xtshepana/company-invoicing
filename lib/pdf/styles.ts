@@ -138,3 +138,14 @@ export const pdfStyles = StyleSheet.create({
     textTransform: "uppercase",
   },
 });
+
+/** Per-document style overrides driven by company_settings.brand_color — {} when unset, so the defaults above apply untouched. */
+export function pdfAccentStyles(brandColor: string | null) {
+  if (!brandColor) return {};
+  return {
+    docTitle: { color: brandColor },
+    tableHeaderRow: { borderBottomColor: brandColor },
+    totalsRowFinal: { borderTopColor: brandColor },
+    totalsValueFinal: { color: brandColor },
+  };
+}
