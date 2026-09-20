@@ -4,12 +4,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getDashboardSummary } from "@/server/services/dashboard";
 import { requireUser, hasModuleAccess } from "@/server/services/auth";
-import { getInvoiceSummaryTotals, getInvoiceCountStats, getRecentInvoices } from "@/server/services/invoices";
+import {
+  getInvoiceSummaryTotals,
+  getInvoiceCountStats,
+  getRecentInvoices,
+  getMonthlyInvoicedTotals,
+  getInvoiceStatusBreakdown,
+} from "@/server/services/invoices";
 import { getReconciliationStats } from "@/server/services/bank-transactions";
 import { getActiveCustomerCount } from "@/server/services/customers";
-import { getPaidThisMonth, getRecentPayments } from "@/server/services/payments";
+import { getPaidThisMonth, getRecentPayments, getMonthlyPaymentTotals } from "@/server/services/payments";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
+import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { InvoiceStatusChart } from "@/components/dashboard/invoice-status-chart";
+
+const REVENUE_CHART_MONTHS = 6;
+
+function monthLabel(key: string): string {
+  const [year, month] = key.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString("en-ZA", { month: "short", timeZone: "UTC" });
+}
+
+function buildRevenueSeries(
+  invoiced: { month: string; total: number }[],
+  paid: { month: string; total: number }[]
+) {
+  const now = new Date();
+  const months: string[] = [];
+  for (let i = REVENUE_CHART_MONTHS - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    months.push(d.toISOString().slice(0, 7));
+  }
+  const invoicedMap = new Map(invoiced.map((r) => [r.month, r.total]));
+  const paidMap = new Map(paid.map((r) => [r.month, r.total]));
+  return months.map((key) => ({
+    label: monthLabel(key),
+    invoiced: invoicedMap.get(key) ?? 0,
+    paid: paidMap.get(key) ?? 0,
+  }));
+}
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -63,19 +97,38 @@ export default async function DashboardPage() {
   const canSeeBanking = hasModuleAccess(profile, "banking");
   const canSeeCustomers = hasModuleAccess(profile, "customers");
   const canSeePayments = hasModuleAccess(profile, "payments");
-  const [summary, settings, invoiceTotals, reconciliationStats, customerCount, invoiceCounts, paidThisMonth, recentInvoices, recentPayments] =
-    await Promise.all([
-      getDashboardSummary(),
-      getCompanySettings(),
-      canSeeInvoices ? getInvoiceSummaryTotals() : null,
-      canSeeBanking ? getReconciliationStats() : null,
-      canSeeCustomers ? getActiveCustomerCount() : null,
-      canSeeInvoices ? getInvoiceCountStats() : null,
-      canSeePayments ? getPaidThisMonth() : null,
-      canSeeInvoices ? getRecentInvoices(5) : null,
-      canSeePayments ? getRecentPayments(5) : null,
-    ]);
+  const [
+    summary,
+    settings,
+    invoiceTotals,
+    reconciliationStats,
+    customerCount,
+    invoiceCounts,
+    paidThisMonth,
+    recentInvoices,
+    recentPayments,
+    monthlyInvoiced,
+    monthlyPaid,
+    statusBreakdown,
+  ] = await Promise.all([
+    getDashboardSummary(),
+    getCompanySettings(),
+    canSeeInvoices ? getInvoiceSummaryTotals() : null,
+    canSeeBanking ? getReconciliationStats() : null,
+    canSeeCustomers ? getActiveCustomerCount() : null,
+    canSeeInvoices ? getInvoiceCountStats() : null,
+    canSeePayments ? getPaidThisMonth() : null,
+    canSeeInvoices ? getRecentInvoices(5) : null,
+    canSeePayments ? getRecentPayments(5) : null,
+    canSeeInvoices ? getMonthlyInvoicedTotals(REVENUE_CHART_MONTHS) : null,
+    canSeePayments ? getMonthlyPaymentTotals(REVENUE_CHART_MONTHS) : null,
+    canSeeInvoices ? getInvoiceStatusBreakdown() : null,
+  ]);
   const currency = settings.default_currency;
+  const revenueSeries =
+    monthlyInvoiced !== null || monthlyPaid !== null
+      ? buildRevenueSeries(monthlyInvoiced ?? [], monthlyPaid ?? [])
+      : null;
 
   return (
     <div className="space-y-6">
@@ -145,6 +198,38 @@ export default async function DashboardPage() {
           </Card>
         )}
       </div>
+
+      {revenueSeries || statusBreakdown ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {revenueSeries ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue by month</CardTitle>
+                <CardDescription>Invoiced vs. paid over the last {REVENUE_CHART_MONTHS} months.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RevenueChart data={revenueSeries} currency={currency} />
+              </CardContent>
+            </Card>
+          ) : null}
+          {statusBreakdown ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoice status</CardTitle>
+                <CardDescription>Where your active invoices currently stand.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <InvoiceStatusChart
+                  draft={statusBreakdown.draft}
+                  sent={statusBreakdown.sent}
+                  paid={statusBreakdown.paid}
+                  overdue={statusBreakdown.overdue}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
 
       {customerCount !== null || invoiceCounts !== null || paidThisMonth !== null ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

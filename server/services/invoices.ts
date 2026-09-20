@@ -149,6 +149,75 @@ export async function getInvoiceCountStats(): Promise<InvoiceCountStats> {
   };
 }
 
+export interface MonthlyTotal {
+  /** "YYYY-MM", so callers can merge series from different tables by key. */
+  month: string;
+  total: number;
+}
+
+/**
+ * For the dashboard revenue chart — bounded to the last `months` calendar
+ * months (small, indexed range), bucketed in JS same as getInvoiceCountStats
+ * above rather than a dedicated SQL aggregate, since the row count here is
+ * naturally small.
+ */
+export async function getMonthlyInvoicedTotals(months: number): Promise<MonthlyTotal[]> {
+  const supabase = await createSupabaseServerClient();
+  const now = new Date();
+  const rangeStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
+
+  const { data } = await supabase
+    .from("invoices")
+    .select("invoice_date, total")
+    .gte("invoice_date", rangeStart.toISOString().slice(0, 10))
+    .not("status", "in", "(cancelled,void)");
+
+  const totals = new Map<string, number>();
+  for (const row of data ?? []) {
+    const key = row.invoice_date.slice(0, 7);
+    totals.set(key, (totals.get(key) ?? 0) + row.total);
+  }
+  return [...totals.entries()].map(([month, total]) => ({ month, total })).sort((a, b) => a.month.localeCompare(b.month));
+}
+
+export interface InvoiceStatusBreakdown {
+  draft: number;
+  sent: number;
+  paid: number;
+  overdue: number;
+}
+
+/**
+ * For the dashboard status donut. "Overdue" is derived (balance_due > 0 and
+ * past due_date), same as getInvoiceCountStats' overdueCount — not a raw
+ * status column value. "Sent" is everything active that isn't draft, paid,
+ * or overdue (i.e. also covers partially_paid), matching the four buckets
+ * shown in the chart.
+ */
+export async function getInvoiceStatusBreakdown(): Promise<InvoiceStatusBreakdown> {
+  const supabase = await createSupabaseServerClient();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [{ count: activeCount }, { count: draft }, { count: paid }, { count: overdue }] = await Promise.all([
+    supabase.from("invoices").select("id", { count: "exact", head: true }).not("status", "in", "(cancelled,void)"),
+    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("status", "draft"),
+    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("status", "paid"),
+    supabase
+      .from("invoices")
+      .select("id", { count: "exact", head: true })
+      .gt("balance_due", 0)
+      .lt("due_date", today)
+      .not("status", "in", "(cancelled,void,draft)"),
+  ]);
+
+  const draftCount = draft ?? 0;
+  const paidCount = paid ?? 0;
+  const overdueCount = overdue ?? 0;
+  const sentCount = Math.max((activeCount ?? 0) - draftCount - paidCount - overdueCount, 0);
+
+  return { draft: draftCount, sent: sentCount, paid: paidCount, overdue: overdueCount };
+}
+
 export interface RecentInvoiceItem {
   id: string;
   invoiceNumber: string;
