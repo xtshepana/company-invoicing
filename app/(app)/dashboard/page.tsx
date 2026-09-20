@@ -52,6 +52,7 @@ const ACTION_LABELS: Record<string, string> = {
   "credit_note.updated": "updated a credit note",
   "credit_note.issued": "issued a credit note",
   "credit_note.cancelled": "cancelled a credit note",
+  "backup.exported": "exported a full data backup",
 };
 
 export default async function DashboardPage() {

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCurrentProfile } from "@/server/services/auth";
 import { getCompanySettings } from "@/lib/config/system-settings";
@@ -29,6 +31,7 @@ export default async function SettingsPage() {
           <TabsTrigger value="company">Company profile</TabsTrigger>
           <TabsTrigger value="invoicing">VAT &amp; invoicing</TabsTrigger>
           <TabsTrigger value="bank">Bank details</TabsTrigger>
+          <TabsTrigger value="backup">Backup</TabsTrigger>
         </TabsList>
         <TabsContent value="company">
           <Card>
@@ -57,6 +60,24 @@ export default async function SettingsPage() {
             </CardHeader>
             <CardContent>
               <BankDetailsForm key={settings.updated_at} settings={settings} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="backup">
+          <Card>
+            <CardHeader>
+              <CardTitle>Backup</CardTitle>
+              <CardDescription>
+                Download every record in the system — customers, products, quotes, invoices, payments, credit
+                notes, recurring invoices, bank reconciliation data, and audit/email logs — as a single JSON file.
+                This is export-only: there is no automated way to restore from it, so keep it somewhere safe rather
+                than treating the download itself as a backup strategy.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button render={<a href="/api/admin/export" />} nativeButton={false}>
+                <Download /> Export All Data
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
