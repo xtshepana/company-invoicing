@@ -496,6 +496,19 @@ has a status filter including "overdue"), the existing `/payments` list,
 and the aging report's per-customer `total` column (which already *is*
 each customer's current balance).
 
+**"Converted" quote status (done):** a converted quote's underlying
+`status` column stays whatever it was at conversion time (typically
+`accepted`) — `converted_invoice_id` is the actual signal, and
+`quote-actions-bar.tsx` already used it to swap the Convert button for
+a "View Invoice" link. The status *badge* on the list and detail pages
+didn't make the same distinction, though — it kept showing the raw
+underlying status. Added `getQuoteDisplayStatus()`
+(`lib/validations/quotes.ts`), the one place that now decides "Converted"
+vs. the raw status label, used by both `/quotes` and `/quotes/[id]`
+instead of each page's own now-removed local `STATUS_LABELS`/
+`STATUS_VARIANTS` copies. Verified live: QUO-000001 (accepted, then
+converted) now reads "Converted" on both pages instead of "Accepted".
+
 See the phase list in the original build spec — this closes out every
 module it named.
 

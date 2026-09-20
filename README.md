@@ -179,3 +179,8 @@ one real timeout risk left from the earlier audit.
 Bank Reconciliation Report (matched/unmatched/ignored transaction value
 for a period, with CSV export) join the existing VAT and aging reports
 under `/reports`.
+
+**"Converted" quote status (done):** a quote's status badge now reads
+"Converted" once it's been turned into an invoice, instead of showing
+the raw underlying status (e.g. "Accepted") it had at the moment of
+conversion.
