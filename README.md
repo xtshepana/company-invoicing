@@ -194,3 +194,8 @@ conversion.
 function every module in the app relies on for authorization, now has
 direct unit test coverage — a staff member is denied a module unless
 it's explicitly granted, with no fallback to "allowed".
+
+**Bank-match confidence levels (done):** suggested bank-transaction
+matches now show a High/Medium/Low confidence badge instead of an ad
+hoc "Exact amount"/"Name match" label, computed from the same signals
+that were already there.

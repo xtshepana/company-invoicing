@@ -18,7 +18,27 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { matchBankTransactionAction } from "@/server/actions/bank-transaction-actions";
 import { formatCurrency } from "@/lib/money";
-import type { CandidatePayment, CandidateInvoice } from "@/server/services/bank-transactions";
+import type { CandidatePayment, CandidateInvoice, MatchConfidence } from "@/server/services/bank-transactions";
+
+const CONFIDENCE_LABELS: Record<MatchConfidence, string> = {
+  high: "High confidence",
+  medium: "Medium confidence",
+  low: "Low confidence",
+};
+
+const CONFIDENCE_VARIANTS: Record<MatchConfidence, "default" | "secondary" | "outline"> = {
+  high: "default",
+  medium: "outline",
+  low: "secondary",
+};
+
+function ConfidenceBadge({ confidence }: { confidence: MatchConfidence }) {
+  return (
+    <Badge variant={CONFIDENCE_VARIANTS[confidence]} className="text-xs">
+      {CONFIDENCE_LABELS[confidence]}
+    </Badge>
+  );
+}
 
 interface BankTransactionSummary {
   id: string;
@@ -121,11 +141,7 @@ export function MatchTransactionDialog({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {candidate.amountMatches ? (
-                        <Badge variant="default" className="text-xs">
-                          Exact amount
-                        </Badge>
-                      ) : null}
+                      <ConfidenceBadge confidence={candidate.confidence} />
                       <span className="font-medium">{formatCurrency(candidate.amount, currency)}</span>
                       <Button size="sm" disabled={pending} onClick={() => handleMatch(candidate.id)}>
                         Link
@@ -153,15 +169,7 @@ export function MatchTransactionDialog({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {invoice.amountMatches ? (
-                        <Badge variant="default" className="text-xs">
-                          Exact amount
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">
-                          Name match
-                        </Badge>
-                      )}
+                      <ConfidenceBadge confidence={invoice.confidence} />
                       <span className="font-medium">{formatCurrency(invoice.balance_due, currency)}</span>
                       <Button
                         size="sm"
