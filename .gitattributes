@@ -1,0 +1,20 @@
+# Normalize all text files to LF line endings in the repository itself,
+# regardless of what line ending the OS that edited them used. Git still
+# checks files out using the current platform's native convention unless
+# core.autocrlf says otherwise (a per-developer/per-machine setting, not
+# something a repo file can override) — this only fixes what's actually
+# stored in git, which is what was producing the "LF will be replaced by
+# CRLF" warnings on Windows.
+* text=auto eol=lf
+
+# Binary files — never subject to line-ending conversion or text diffing.
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
