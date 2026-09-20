@@ -8,65 +8,18 @@ import type { Instrumentation } from "next";
  * confusing 500 on whichever request happens to touch that var first.
  * Guarded to the Node.js runtime since proxy.ts (the only edge-runtime
  * code in this app) only ever reads the public env vars, not these.
+ *
+ * The daily cron job is NOT scheduled from here (a boot-time
+ * setTimeout/setInterval was tried and reverted — see lib/cron-trigger.ts
+ * for why: Hostinger's Node.js hosting runs this app through LiteSpeed's
+ * lsnode.js, which cycles Node processes on a FastCGI-like model rather
+ * than keeping one alive indefinitely, so a boot-time timer can't reliably
+ * survive long enough to fire).
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { getServerEnv } = await import("@/lib/env");
-    const env = getServerEnv();
-
-    // Temporary diagnostic: npm_lifecycle_event === "start" didn't make the
-    // scheduler below fire on Hostinger either, so log the actual values
-    // instead of guessing a fourth env-var heuristic blind. Remove once the
-    // real gate is confirmed working there.
-    console.log("[daily-cron] env check", {
-      NODE_ENV: process.env.NODE_ENV,
-      npm_lifecycle_event: process.env.npm_lifecycle_event,
-      npm_execpath: process.env.npm_execpath,
-      argv: process.argv,
-    });
-
-    // Hostinger's Node.js Web App hosting (unlike its classic PHP/shared
-    // hosting) doesn't expose hPanel's Cron Jobs feature at all. The server
-    // still runs as one persistent process either way, so the daily job is
-    // scheduled in-process instead of depending on an external trigger.
-    // This calls the existing /api/cron/daily route over HTTP rather than
-    // importing its logic directly, so this stays a thin trigger and the
-    // route's own idempotency (see that file) is what makes it safe to
-    // call repeatedly - including from multiple server instances, if this
-    // ever runs on more than one.
-    //
-    // Gated on .next/BUILD_ID existing (written by `next build`) AND
-    // npm_lifecycle_event not being "dev" - neither signal alone is
-    // reliable: BUILD_ID alone false-positives under `next dev` if a
-    // previous `next build`'s output is still sitting in .next/ (confirmed
-    // locally - it does), and npm_lifecycle_event alone didn't make this
-    // fire on Hostinger for a reason the diagnostic log above is here to
-    // reveal. Together: BUILD_ID rules out a plain dev checkout with no
-    // build at all, and excluding "dev" specifically rules out the stale-
-    // .next-during-`next dev` case, without depending on npm_lifecycle_event
-    // being "start" exactly (in case Hostinger doesn't set it, or sets
-    // something else) for the positive case.
-    const { existsSync } = await import("node:fs");
-    const { join } = await import("node:path");
-    const isProductionBuild = existsSync(join(process.cwd(), ".next", "BUILD_ID"));
-    const isDevServer = process.env.npm_lifecycle_event === "dev";
-    console.log("[daily-cron] isProductionBuild", isProductionBuild, "isDevServer", isDevServer);
-
-    if (isProductionBuild && !isDevServer) {
-      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-      const triggerDailyCron = async () => {
-        try {
-          const res = await fetch(`${env.APP_URL}/api/cron/daily`, {
-            headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
-          });
-          console.log("[daily-cron] triggered", res.status, await res.text());
-        } catch (err) {
-          console.error("[daily-cron] failed to trigger", err instanceof Error ? err.message : err);
-        }
-      };
-      setTimeout(triggerDailyCron, 30_000);
-      setInterval(triggerDailyCron, ONE_DAY_MS);
-    }
+    getServerEnv();
   }
 }
 
