@@ -1,10 +1,39 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { generateCustomerReferenceCandidate } from "@/lib/customer-reference";
 import type { CustomerSearchInput } from "@/lib/validations/customers";
 import type { Tables } from "@/types/database";
 
 export type Customer = Tables<"customers">;
+
+type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+/**
+ * Auto-generates a customer_reference (3 letters from the company name + 5
+ * random digits) and checks it against the unique index
+ * (customers_customer_reference_unique) before returning it, so callers
+ * essentially never hit that constraint on insert - a handful of random
+ * digits colliding for the same 3-letter prefix is already rare, this just
+ * closes the remaining gap. The unique index itself is what actually
+ * guarantees no duplicate ever gets persisted, including under concurrent
+ * requests this check alone can't rule out.
+ */
+export async function generateUniqueCustomerReference(
+  supabase: SupabaseClient,
+  companyName: string
+): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const candidate = generateCustomerReferenceCandidate(companyName);
+    const { data } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("customer_reference", candidate)
+      .maybeSingle();
+    if (!data) return candidate;
+  }
+  throw new Error("Unable to generate a unique customer reference. Please try again.");
+}
 
 const PAGE_SIZE = 20;
 

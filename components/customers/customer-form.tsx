@@ -54,7 +54,15 @@ export function CustomerForm({ customer }: { customer?: Customer }) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="customer_reference">Customer reference</Label>
-            <Input id="customer_reference" name="customer_reference" defaultValue={customer?.customer_reference} />
+            <Input
+              id="customer_reference"
+              name="customer_reference"
+              defaultValue={customer?.customer_reference}
+              placeholder="Leave blank to auto-generate"
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave blank to auto-generate a unique one from the company name.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>

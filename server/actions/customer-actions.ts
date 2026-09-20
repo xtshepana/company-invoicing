@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireModuleAccess } from "@/server/services/auth";
 import { recordAuditLog } from "@/server/services/audit";
+import { generateUniqueCustomerReference } from "@/server/services/customers";
 import { customerSchema } from "@/lib/validations/customers";
 import type { ActionResult } from "@/server/actions/auth-actions";
 import type { Json, TablesInsert } from "@/types/database";
@@ -22,6 +23,14 @@ function toRow(data: ReturnType<typeof customerSchema.parse>): TablesInsert<"cus
   };
 }
 
+/** 23505 = unique_violation. Only customer_reference has a unique index on this table, so any hit here is that one. */
+function customerSaveErrorMessage(error: { code?: string }): string {
+  if (error.code === "23505") {
+    return "That customer reference is already in use. Leave it blank to auto-generate one, or choose a different value.";
+  }
+  return "Unable to save this customer. Please try again.";
+}
+
 export async function createCustomerAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const actor = await requireModuleAccess("customers");
 
@@ -31,14 +40,17 @@ export async function createCustomerAction(_prev: ActionResult, formData: FormDa
   }
 
   const supabase = await createSupabaseServerClient();
+  const customerReference =
+    parsed.data.customer_reference || (await generateUniqueCustomerReference(supabase, parsed.data.company_name));
+
   const { data: inserted, error } = await supabase
     .from("customers")
-    .insert({ ...toRow(parsed.data), created_by: actor.id })
+    .insert({ ...toRow(parsed.data), customer_reference: customerReference, created_by: actor.id })
     .select("id")
     .single();
 
   if (error) {
-    return { error: "Unable to save this customer. Please try again." };
+    return { error: customerSaveErrorMessage(error) };
   }
 
   await recordAuditLog({
@@ -67,9 +79,15 @@ export async function updateCustomerAction(_prev: ActionResult, formData: FormDa
   const supabase = await createSupabaseServerClient();
   const { data: before } = await supabase.from("customers").select("*").eq("id", id).single();
 
-  const { error } = await supabase.from("customers").update(toRow(parsed.data)).eq("id", id);
+  const customerReference =
+    parsed.data.customer_reference || (await generateUniqueCustomerReference(supabase, parsed.data.company_name));
+
+  const { error } = await supabase
+    .from("customers")
+    .update({ ...toRow(parsed.data), customer_reference: customerReference })
+    .eq("id", id);
   if (error) {
-    return { error: "Unable to save this customer. Please try again." };
+    return { error: customerSaveErrorMessage(error) };
   }
 
   await recordAuditLog({
