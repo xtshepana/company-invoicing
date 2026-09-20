@@ -114,7 +114,7 @@ Actions) is also logged there as a structured `[server error]` line via
 provider wired up (Sentry, etc.); that's a decision for whoever runs this
 in production, not something assumed here.
 
-`next.config.ts` sets baseline security headers on every response
+`next.config.mjs` sets baseline security headers on every response
 (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
 `Permissions-Policy`, `Strict-Transport-Security`) — no custom
 Content-Security-Policy, since a strict CSP needs tuning against actual
