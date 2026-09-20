@@ -205,3 +205,7 @@ end-to-end tests cover scenarios the existing suite didn't — a single
 payment split across two invoices via auto-allocate, and an overpayment
 that correctly becomes customer credit rather than being rejected or
 floored.
+
+**Customer profile: quotes and credit notes (done):** a customer's
+profile page now also shows their recent quotes and recent credit
+notes, alongside the invoices/payments/balance it already showed.

@@ -55,3 +55,15 @@ export async function getQuoteById(id: string): Promise<QuoteWithItems | null> {
     .maybeSingle();
   return data as QuoteWithItems | null;
 }
+
+/** For the customer profile page's "Recent quotes" list. */
+export async function getCustomerRecentQuotes(customerId: string, limit = 5): Promise<Quote[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("quotes")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("quote_date", { ascending: false })
+    .limit(limit);
+  return data ?? [];
+}

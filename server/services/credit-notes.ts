@@ -86,3 +86,15 @@ export async function getCustomerInvoicesForCreditNote(customerId: string): Prom
   if (error) throw new Error("Unable to load invoices for this customer.");
   return data ?? [];
 }
+
+/** For the customer profile page's "Recent credit notes" list. */
+export async function getCustomerRecentCreditNotes(customerId: string, limit = 5): Promise<CreditNote[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("credit_notes")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("credit_note_date", { ascending: false })
+    .limit(limit);
+  return data ?? [];
+}
