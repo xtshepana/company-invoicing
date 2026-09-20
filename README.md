@@ -190,6 +190,16 @@ the same per-module access checks as the existing totals.
 the raw underlying status (e.g. "Accepted") it had at the moment of
 conversion.
 
+**Permission enforcement tests (done):** `hasModuleAccess()`, the single
+function every module in the app relies on for authorization, now has
+direct unit test coverage — a staff member is denied a module unless
+it's explicitly granted, with no fallback to "allowed".
+
+**Bank-match confidence levels (done):** suggested bank-transaction
+matches now show a High/Medium/Low confidence badge instead of an ad
+hoc "Exact amount"/"Name match" label, computed from the same signals
+that were already there.
+
 **Split-payment and overpayment e2e coverage (done):** two new
 end-to-end tests cover scenarios the existing suite didn't — a single
 payment split across two invoices via auto-allocate, and an overpayment
