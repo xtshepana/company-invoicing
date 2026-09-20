@@ -133,3 +133,10 @@ plus one manual SQL step).
 table via the service-role client so it bypasses RLS entirely. This is
 export-only — there's no restore path — and every download is recorded in
 the audit log. Available from Settings → Backup.
+
+**Bank-matching UX polish (done):** the manual "Match" dialog on
+`/bank-reconciliation` now suggests outstanding invoices for an
+unmatched transaction (by exact-amount balance and/or customer-name
+match against the description/reference), one click away from a
+pre-filled Record Payment form — closing the gap left by automatic
+matching, which only ever links to payments that already exist.

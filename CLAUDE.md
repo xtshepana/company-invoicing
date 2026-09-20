@@ -354,9 +354,23 @@ speculative import pipeline nothing exercises. Surfaced on Settings → a
 new "Backup" tab. Every export is itself audit-logged
 (`backup.exported`), same as any other admin action.
 
-**Not yet built:** automatic invoice-level payment matching beyond what
-`auto_match_bank_transactions` does. See the phase list in the original
-build spec — this closes out every module it named.
+**Bank-matching UX polish (done):** `auto_match_bank_transactions` only
+ever links a transaction to a payment that *already exists* — it has
+nothing to offer for a transaction that arrived before anyone captured
+the payment. `listCandidateInvoices()` in
+`server/services/bank-transactions.ts` closes that gap on the manual
+"Match" dialog: it suggests outstanding invoices whose balance equals the
+transaction amount and/or whose customer name shows up in the
+transaction's description/reference (a heuristic — see
+`customerNameAppearsIn()` — surfaced as a suggestion to confirm, never
+auto-applied). The dialog's "Suggested invoices" section links straight
+into `/payments/new` with the right customer pre-selected, instead of the
+blind customer search that was the only option before. Also fetched via
+the existing `/api/bank-transactions/[id]/candidates` route (now returns
+both `candidates` and `invoiceCandidates` in one round trip).
+
+See the phase list in the original build spec — this closes out every
+module it named.
 
 **Real bugs found only by actually clicking through the app or reasoning
 through call sites, not by review:**

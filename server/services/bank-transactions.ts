@@ -22,6 +22,18 @@ export interface CandidatePayment {
   daysApart: number;
 }
 
+export interface CandidateInvoice {
+  id: string;
+  customer_id: string;
+  invoice_number: string;
+  due_date: string;
+  total: number;
+  balance_due: number;
+  customers: { company_name: string } | null;
+  amountMatches: boolean;
+  nameMatches: boolean;
+}
+
 const PAGE_SIZE = 25;
 
 export interface BankTransactionListPage {
@@ -137,4 +149,69 @@ export async function listCandidatePayments(amount: number, transactionDate: str
       return a.daysApart - b.daysApart;
     })
     .slice(0, 50);
+}
+
+const COMPANY_SUFFIX_WORDS = new Set(["pty", "ltd", "cc", "inc", "co", "the", "and"]);
+
+function normalizeForMatch(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
+}
+
+/**
+ * Does any significant word (3+ letters, not a generic company suffix) from
+ * the customer's name show up in the transaction's free-text fields? This is
+ * a heuristic for the common case where a bank feed's description is
+ * whatever the payer typed as their own reference, e.g. "AB TRADING PTY LTD"
+ * paying an invoice — not a guarantee, hence it's surfaced as a suggestion
+ * to confirm, never auto-applied the way auto_match_bank_transactions is.
+ */
+function customerNameAppearsIn(companyName: string, haystack: string): boolean {
+  const words = normalizeForMatch(companyName)
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !COMPANY_SUFFIX_WORDS.has(word));
+  if (words.length === 0) return false;
+  const normalizedHaystack = normalizeForMatch(haystack);
+  return words.some((word) => normalizedHaystack.includes(word));
+}
+
+/**
+ * Candidate invoices for a bank transaction that has no matching payment yet
+ * — this is the "beyond auto_match_bank_transactions" gap: that function
+ * only ever links to a payment that already exists, so a transaction that
+ * arrived before anyone captured the payment has nothing to auto-match
+ * against. Suggests outstanding invoices whose balance equals the
+ * transaction amount and/or whose customer name shows up in the
+ * description/reference, so staff can jump straight to the right customer
+ * instead of a blind search. Never creates or links anything itself.
+ */
+export async function listCandidateInvoices(
+  amount: number,
+  description: string,
+  reference: string | null,
+): Promise<CandidateInvoice[]> {
+  if (amount <= 0) return [];
+  const supabase = await createSupabaseServerClient();
+  const haystack = `${description} ${reference ?? ""}`;
+
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("id, customer_id, invoice_number, due_date, total, balance_due, customers(company_name)")
+    .gt("balance_due", 0)
+    .not("status", "in", "(cancelled,void)")
+    .order("due_date", { ascending: true })
+    .limit(300);
+
+  return (invoices ?? [])
+    .map((invoice) => ({
+      ...invoice,
+      amountMatches: Math.abs((invoice.balance_due ?? 0) - amount) < 0.005,
+      nameMatches: invoice.customers ? customerNameAppearsIn(invoice.customers.company_name, haystack) : false,
+    }))
+    .filter((invoice) => invoice.amountMatches || invoice.nameMatches)
+    .sort((a, b) => {
+      const aScore = (a.amountMatches ? 2 : 0) + (a.nameMatches ? 1 : 0);
+      const bScore = (b.amountMatches ? 2 : 0) + (b.nameMatches ? 1 : 0);
+      return bScore - aScore;
+    })
+    .slice(0, 20) as CandidateInvoice[];
 }
