@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
-import { pdfStyles as s } from "@/lib/pdf/styles";
+import { pdfStyles as s, pdfAccentStyles } from "@/lib/pdf/styles";
 import { formatCurrency } from "@/lib/money";
 import type { InvoiceWithItems } from "@/server/services/invoices";
 import type { CompanySettings } from "@/lib/config/system-settings";
@@ -20,6 +20,7 @@ const STATUS_LABELS: Record<string, string> = {
 export function InvoicePdf({ invoice, settings }: { invoice: InvoiceWithItems; settings: CompanySettings }) {
   const currency = settings.default_currency;
   const customer = invoice.customers;
+  const accent = pdfAccentStyles(settings.brand_color);
 
   return (
     <Document title={`${invoice.invoice_number}`}>
@@ -38,7 +39,7 @@ export function InvoicePdf({ invoice, settings }: { invoice: InvoiceWithItems; s
             {settings.registration_number ? <Text style={s.small}>Reg No: {settings.registration_number}</Text> : null}
           </View>
           <View>
-            <Text style={s.docTitle}>INVOICE</Text>
+            <Text style={[s.docTitle, accent.docTitle]}>INVOICE</Text>
             <Text style={s.statusBadge}>{STATUS_LABELS[invoice.status] ?? invoice.status}</Text>
             <Text style={s.metaLabel}>Invoice number</Text>
             <Text style={s.metaValue}>{invoice.invoice_number}</Text>
@@ -65,7 +66,7 @@ export function InvoicePdf({ invoice, settings }: { invoice: InvoiceWithItems; s
         </View>
 
         <View style={s.table}>
-          <View style={s.tableHeaderRow}>
+          <View style={[s.tableHeaderRow, accent.tableHeaderRow]}>
             <Text style={[s.th, s.colDescription]}>Description</Text>
             <Text style={[s.th, s.colQty]}>Qty</Text>
             <Text style={[s.th, s.colPrice]}>Unit Price</Text>
@@ -98,17 +99,17 @@ export function InvoicePdf({ invoice, settings }: { invoice: InvoiceWithItems; s
             <Text style={s.totalsLabel}>VAT</Text>
             <Text>{formatCurrency(invoice.vat_total, currency)}</Text>
           </View>
-          <View style={s.totalsRowFinal}>
-            <Text style={s.totalsValueFinal}>Total</Text>
-            <Text style={s.totalsValueFinal}>{formatCurrency(invoice.total, currency)}</Text>
+          <View style={[s.totalsRowFinal, accent.totalsRowFinal]}>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>Total</Text>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>{formatCurrency(invoice.total, currency)}</Text>
           </View>
           <View style={s.totalsRow}>
             <Text style={s.totalsLabel}>Amount paid</Text>
             <Text>{formatCurrency(invoice.amount_paid, currency)}</Text>
           </View>
-          <View style={s.totalsRowFinal}>
-            <Text style={s.totalsValueFinal}>Balance due</Text>
-            <Text style={s.totalsValueFinal}>{formatCurrency(invoice.balance_due ?? 0, currency)}</Text>
+          <View style={[s.totalsRowFinal, accent.totalsRowFinal]}>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>Balance due</Text>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>{formatCurrency(invoice.balance_due ?? 0, currency)}</Text>
           </View>
         </View>
 

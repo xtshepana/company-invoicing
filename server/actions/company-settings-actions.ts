@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/server/services/auth";
 import { recordAuditLog } from "@/server/services/audit";
 import {
+  appearanceSchema,
   bankDetailsSchema,
   companyProfileSchema,
   invoiceSettingsSchema,
@@ -62,6 +63,17 @@ export async function updateCompanyProfileAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
   return applySettingsUpdate(parsed.data, "company_settings.profile_updated");
+}
+
+export async function updateAppearanceAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = appearanceSchema.safeParse(formToObject(formData));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  return applySettingsUpdate(parsed.data, "company_settings.appearance_updated");
 }
 
 export async function updateBankDetailsAction(

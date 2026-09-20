@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
-import { pdfStyles as s } from "@/lib/pdf/styles";
+import { pdfStyles as s, pdfAccentStyles } from "@/lib/pdf/styles";
 import { formatCurrency } from "@/lib/money";
 import type { CreditNoteWithItems } from "@/server/services/credit-notes";
 import type { CompanySettings } from "@/lib/config/system-settings";
@@ -17,6 +17,7 @@ const STATUS_LABELS: Record<string, string> = {
 export function CreditNotePdf({ creditNote, settings }: { creditNote: CreditNoteWithItems; settings: CompanySettings }) {
   const currency = settings.default_currency;
   const customer = creditNote.customers;
+  const accent = pdfAccentStyles(settings.brand_color);
 
   return (
     <Document title={`${creditNote.credit_note_number}`}>
@@ -33,7 +34,7 @@ export function CreditNotePdf({ creditNote, settings }: { creditNote: CreditNote
             {settings.registration_number ? <Text style={s.small}>Reg No: {settings.registration_number}</Text> : null}
           </View>
           <View>
-            <Text style={s.docTitle}>CREDIT NOTE</Text>
+            <Text style={[s.docTitle, accent.docTitle]}>CREDIT NOTE</Text>
             <Text style={s.statusBadge}>{STATUS_LABELS[creditNote.status] ?? creditNote.status}</Text>
             <Text style={s.metaLabel}>Credit note number</Text>
             <Text style={s.metaValue}>{creditNote.credit_note_number}</Text>
@@ -65,7 +66,7 @@ export function CreditNotePdf({ creditNote, settings }: { creditNote: CreditNote
         ) : null}
 
         <View style={s.table}>
-          <View style={s.tableHeaderRow}>
+          <View style={[s.tableHeaderRow, accent.tableHeaderRow]}>
             <Text style={[s.th, s.colDescription]}>Description</Text>
             <Text style={[s.th, s.colQty]}>Qty</Text>
             <Text style={[s.th, s.colPrice]}>Unit Price</Text>
@@ -98,9 +99,9 @@ export function CreditNotePdf({ creditNote, settings }: { creditNote: CreditNote
             <Text style={s.totalsLabel}>VAT</Text>
             <Text>{formatCurrency(creditNote.vat_total, currency)}</Text>
           </View>
-          <View style={s.totalsRowFinal}>
-            <Text style={s.totalsValueFinal}>Total credit</Text>
-            <Text style={s.totalsValueFinal}>{formatCurrency(creditNote.total, currency)}</Text>
+          <View style={[s.totalsRowFinal, accent.totalsRowFinal]}>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>Total credit</Text>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>{formatCurrency(creditNote.total, currency)}</Text>
           </View>
         </View>
 

@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
-import { pdfStyles as s } from "@/lib/pdf/styles";
+import { pdfStyles as s, pdfAccentStyles } from "@/lib/pdf/styles";
 import { formatCurrency } from "@/lib/money";
 import type { CustomerStatement } from "@/server/services/statements";
 import type { CompanySettings } from "@/lib/config/system-settings";
@@ -17,6 +17,7 @@ function formatDate(value: string | null) {
 
 export function StatementPdf({ statement, settings }: { statement: CustomerStatement; settings: CompanySettings }) {
   const currency = settings.default_currency;
+  const accent = pdfAccentStyles(settings.brand_color);
 
   return (
     <Document title={`Statement - ${statement.customer.company_name}`}>
@@ -30,7 +31,7 @@ export function StatementPdf({ statement, settings }: { statement: CustomerState
             <Text style={s.small}>{[settings.phone, settings.email].filter(Boolean).join("  ·  ")}</Text>
           </View>
           <View>
-            <Text style={s.docTitle}>STATEMENT</Text>
+            <Text style={[s.docTitle, accent.docTitle]}>STATEMENT</Text>
             <Text style={s.metaLabel}>As at</Text>
             <Text style={s.metaValue}>{formatDate(new Date().toISOString())}</Text>
           </View>
@@ -43,7 +44,7 @@ export function StatementPdf({ statement, settings }: { statement: CustomerState
         </View>
 
         <View style={s.table}>
-          <View style={s.tableHeaderRow}>
+          <View style={[s.tableHeaderRow, accent.tableHeaderRow]}>
             <Text style={[s.th, statementStyles.colDate]}>Date</Text>
             <Text style={[s.th, statementStyles.colRef]}>Reference</Text>
             <Text style={[s.th, statementStyles.colDesc]}>Description</Text>
@@ -64,9 +65,9 @@ export function StatementPdf({ statement, settings }: { statement: CustomerState
         </View>
 
         <View style={s.totalsBlock}>
-          <View style={s.totalsRowFinal}>
-            <Text style={s.totalsValueFinal}>Closing balance</Text>
-            <Text style={s.totalsValueFinal}>{formatCurrency(statement.closingBalance, currency)}</Text>
+          <View style={[s.totalsRowFinal, accent.totalsRowFinal]}>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>Closing balance</Text>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>{formatCurrency(statement.closingBalance, currency)}</Text>
           </View>
         </View>
 

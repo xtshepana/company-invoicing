@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
-import { pdfStyles as s } from "@/lib/pdf/styles";
+import { pdfStyles as s, pdfAccentStyles } from "@/lib/pdf/styles";
 import { formatCurrency } from "@/lib/money";
 import type { QuoteWithItems } from "@/server/services/quotes";
 import type { CompanySettings } from "@/lib/config/system-settings";
@@ -20,6 +20,7 @@ const STATUS_LABELS: Record<string, string> = {
 export function QuotePdf({ quote, settings }: { quote: QuoteWithItems; settings: CompanySettings }) {
   const currency = settings.default_currency;
   const customer = quote.customers;
+  const accent = pdfAccentStyles(settings.brand_color);
 
   return (
     <Document title={`${quote.quote_number}`}>
@@ -36,7 +37,7 @@ export function QuotePdf({ quote, settings }: { quote: QuoteWithItems; settings:
             {settings.registration_number ? <Text style={s.small}>Reg No: {settings.registration_number}</Text> : null}
           </View>
           <View>
-            <Text style={s.docTitle}>QUOTATION</Text>
+            <Text style={[s.docTitle, accent.docTitle]}>QUOTATION</Text>
             <Text style={s.statusBadge}>{STATUS_LABELS[quote.status] ?? quote.status}</Text>
             <Text style={s.metaLabel}>Quote number</Text>
             <Text style={s.metaValue}>{quote.quote_number}</Text>
@@ -67,7 +68,7 @@ export function QuotePdf({ quote, settings }: { quote: QuoteWithItems; settings:
         </View>
 
         <View style={s.table}>
-          <View style={s.tableHeaderRow}>
+          <View style={[s.tableHeaderRow, accent.tableHeaderRow]}>
             <Text style={[s.th, s.colDescription]}>Description</Text>
             <Text style={[s.th, s.colQty]}>Qty</Text>
             <Text style={[s.th, s.colPrice]}>Unit Price</Text>
@@ -100,9 +101,9 @@ export function QuotePdf({ quote, settings }: { quote: QuoteWithItems; settings:
             <Text style={s.totalsLabel}>VAT</Text>
             <Text>{formatCurrency(quote.vat_total, currency)}</Text>
           </View>
-          <View style={s.totalsRowFinal}>
-            <Text style={s.totalsValueFinal}>Total</Text>
-            <Text style={s.totalsValueFinal}>{formatCurrency(quote.total, currency)}</Text>
+          <View style={[s.totalsRowFinal, accent.totalsRowFinal]}>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>Total</Text>
+            <Text style={[s.totalsValueFinal, accent.totalsValueFinal]}>{formatCurrency(quote.total, currency)}</Text>
           </View>
         </View>
 
