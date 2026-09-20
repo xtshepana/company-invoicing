@@ -1,20 +1,27 @@
-// One-off setup script for the Playwright e2e account. Reads
-// NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / E2E_USER_EMAIL /
-// E2E_USER_PASSWORD from .env.local (no dotenv dependency — parsed by hand
-// to avoid adding one just for this script) and creates the auth user if
-// it doesn't exist yet (or resets its password if it does).
+// One-off setup script for Playwright e2e accounts. Reads
+// NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY and a named pair of
+// E2E_<PREFIX>_EMAIL / E2E_<PREFIX>_PASSWORD vars from .env.local (no
+// dotenv dependency — parsed by hand to avoid adding one just for this
+// script) and creates the auth user if it doesn't exist yet (or resets its
+// password if it does).
 //
-// This does NOT promote the profile to owner_admin — the
+// Usage: node scripts/create-e2e-user.mjs [prefix]
+//   node scripts/create-e2e-user.mjs           -> E2E_USER_EMAIL/PASSWORD (owner_admin account)
+//   node scripts/create-e2e-user.mjs STAFF     -> E2E_STAFF_EMAIL/PASSWORD (restricted staff account)
+//
+// This does NOT promote or restrict the profile's role/permissions — the
 // profiles_prevent_self_privilege_escalation trigger (0002_rls.sql) fires
 // on every profiles UPDATE regardless of RLS, including from this
 // service-role script, because it checks is_admin() which reads
 // auth.uid() — null here, since a standalone script has no session at
-// all. Promoting a role always goes through a real admin's authenticated
-// session in the app (server/actions/user-management-actions.ts) except
-// for this one-time bootstrap, which was done once via direct SQL
-// (disable trigger, update, re-enable) rather than by weakening the
-// trigger itself just for script convenience. If you ever need to
-// recreate this user from scratch, redo that step by hand.
+// all. Changing role/staff_module_permissions always goes through a real
+// admin's authenticated session in the app
+// (server/actions/user-management-actions.ts) except for this one-time
+// bootstrap, which is done once via direct SQL (disable trigger, update,
+// re-enable) rather than by weakening the trigger itself just for script
+// convenience. If you ever need to recreate one of these users from
+// scratch, redo that step by hand — see CLAUDE.md's "e2e tests" section
+// for the exact SQL used for each account.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -36,14 +43,18 @@ function loadEnv(filePath) {
   return env;
 }
 
+const prefix = (process.argv[2] || "USER").toUpperCase();
+const emailVar = `E2E_${prefix}_EMAIL`;
+const passwordVar = `E2E_${prefix}_PASSWORD`;
+
 const env = loadEnv(envPath);
 const url = env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
-const email = env.E2E_USER_EMAIL;
-const password = env.E2E_USER_PASSWORD;
+const email = env[emailVar];
+const password = env[passwordVar];
 
 if (!url || !serviceKey || !email || !password) {
-  console.error("Missing one of NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / E2E_USER_EMAIL / E2E_USER_PASSWORD in .env.local");
+  console.error(`Missing one of NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / ${emailVar} / ${passwordVar} in .env.local`);
   process.exit(1);
 }
 
@@ -86,13 +97,13 @@ if (createError) {
 
 console.log(`e2e auth user ready: ${email} (id ${userId})`);
 
-const { data: profile } = await admin.from("profiles").select("role, is_active").eq("id", userId).maybeSingle();
-if (profile?.role !== "owner_admin" || !profile.is_active) {
+const { data: profile } = await admin.from("profiles").select("role, is_active, staff_module_permissions").eq("id", userId).maybeSingle();
+console.log(`Profile role: ${profile?.role ?? "unknown"}, active: ${profile?.is_active ?? "unknown"}, permissions: ${JSON.stringify(profile?.staff_module_permissions)}`);
+if (prefix === "USER" && (profile?.role !== "owner_admin" || !profile.is_active)) {
   console.warn(
-    "This profile is not an active owner_admin yet (role: " +
-      (profile?.role ?? "unknown") +
-      "). The e2e suite needs full module access — promote it once via direct SQL " +
-      "(see the comment at the top of this file), since the app's own role-change " +
-      "path requires a real admin session that a standalone script doesn't have."
+    "This profile is not an active owner_admin yet. The main e2e suite needs full " +
+      "module access — promote it once via direct SQL (see the comment at the top " +
+      "of this file), since the app's own role-change path requires a real admin " +
+      "session that a standalone script doesn't have."
   );
 }

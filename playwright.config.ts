@@ -66,8 +66,18 @@ export default defineConfig({
       testMatch: /.*\.setup\.ts/,
     },
     {
+      // Every spec except staff-permissions.spec.ts runs as the
+      // owner_admin e2e account — that one needs a genuinely restricted
+      // staff login instead, handled by "chromium-staff" below.
       name: "chromium",
+      testMatch: /^(?!.*staff-permissions).*\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"], storageState: "playwright/.auth/user.json" },
+      dependencies: ["setup"],
+    },
+    {
+      name: "chromium-staff",
+      testMatch: /staff-permissions\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"], storageState: "playwright/.auth/staff.json" },
       dependencies: ["setup"],
     },
   ],
