@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
 import { getQuoteById } from "@/server/services/quotes";
+import { getQuoteDisplayStatus } from "@/lib/validations/quotes";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 import { QuoteActionsBar } from "@/components/documents/quote-actions-bar";
@@ -18,24 +19,6 @@ export async function generateMetadata({ params }: QuoteDetailPageProps): Promis
   const quote = await getQuoteById(id);
   return { title: quote?.quote_number ?? "Quote" };
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  sent: "Sent",
-  accepted: "Accepted",
-  rejected: "Rejected",
-  expired: "Expired",
-  cancelled: "Cancelled",
-};
-
-const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  draft: "secondary",
-  sent: "outline",
-  accepted: "default",
-  rejected: "destructive",
-  expired: "secondary",
-  cancelled: "destructive",
-};
 
 export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) {
   const profile = await getCurrentProfile();
@@ -55,7 +38,7 @@ export default async function QuoteDetailPage({ params }: QuoteDetailPageProps) 
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">{quote.quote_number}</h1>
-            <Badge variant={STATUS_VARIANTS[quote.status]}>{STATUS_LABELS[quote.status]}</Badge>
+            <Badge variant={getQuoteDisplayStatus(quote).variant}>{getQuoteDisplayStatus(quote).label}</Badge>
           </div>
           <p className="text-muted-foreground">
             {quote.customers?.company_name}

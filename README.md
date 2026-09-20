@@ -185,6 +185,16 @@ customer count, unpaid/overdue invoice counts, invoiced/paid this
 month, and recent-invoices/recent-payments lists — each gated behind
 the same per-module access checks as the existing totals.
 
+**"Converted" quote status (done):** a quote's status badge now reads
+"Converted" once it's been turned into an invoice, instead of showing
+the raw underlying status (e.g. "Accepted") it had at the moment of
+conversion.
+
+**Permission enforcement tests (done):** `hasModuleAccess()`, the single
+function every module in the app relies on for authorization, now has
+direct unit test coverage — a staff member is denied a module unless
+it's explicitly granted, with no fallback to "allowed".
+
 **Bank-match confidence levels (done):** suggested bank-transaction
 matches now show a High/Medium/Low confidence badge instead of an ad
 hoc "Exact amount"/"Name match" label, computed from the same signals

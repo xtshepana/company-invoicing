@@ -516,6 +516,38 @@ per-invoice status list), and a `paid` invoice is correctly excluded
 from "unpaid" — the displayed unpaid count of 1 matches exactly one
 `partially_paid` invoice out of three total.
 
+**"Converted" quote status (done):** a converted quote's underlying
+`status` column stays whatever it was at conversion time (typically
+`accepted`) — `converted_invoice_id` is the actual signal, and
+`quote-actions-bar.tsx` already used it to swap the Convert button for
+a "View Invoice" link. The status *badge* on the list and detail pages
+didn't make the same distinction, though — it kept showing the raw
+underlying status. Added `getQuoteDisplayStatus()`
+(`lib/validations/quotes.ts`), the one place that now decides "Converted"
+vs. the raw status label, used by both `/quotes` and `/quotes/[id]`
+instead of each page's own now-removed local `STATUS_LABELS`/
+`STATUS_VARIANTS` copies. Verified live: QUO-000001 (accepted, then
+converted) now reads "Converted" on both pages instead of "Accepted".
+
+**Permission enforcement tests (done):** the build spec explicitly names
+"verify Staff cannot perform restricted accounting/admin actions" as a
+testing requirement, and there was no test coverage for it at all —
+`hasModuleAccess()` (`server/services/auth.ts`) gates every module in
+the entire app, and it had zero direct tests despite being the single
+point every server action/route handler relies on for authorization.
+`tests/unit/permissions.test.ts` covers it directly: owner_admin/
+accountant bypass regardless of `staff_module_permissions`; a staff
+member is denied everything when that column is `null` or `{}`; a staff
+member is granted only the modules explicitly set `true` (both an
+explicit `false` and an absent key must deny — a staff member must never
+fall back to "allowed"); unrelated profile fields (name, email) have no
+bearing on the result. Since `server/services/auth.ts` imports
+`server-only` and transitively `lib/supabase/server.ts` (which imports
+`next/headers`), both `"server-only"` and `"@/lib/supabase/server"` are
+mocked at the top of the test file — neither is safe to execute outside
+a real Next.js request, and `hasModuleAccess()` itself never touches
+either.
+
 **Bank-match confidence levels (done):** the build spec explicitly asks
 for HIGH/MEDIUM/LOW confidence levels on suggested bank-transaction
 matches; the underlying signals (`amountMatches`/`daysApart` for

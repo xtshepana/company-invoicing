@@ -10,29 +10,11 @@ import { ListFilters } from "@/components/shared/list-filters";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
 import { listQuotes } from "@/server/services/quotes";
-import { quoteSearchSchema } from "@/lib/validations/quotes";
+import { quoteSearchSchema, QUOTE_STATUS_LABELS, getQuoteDisplayStatus } from "@/lib/validations/quotes";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Quotes" };
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  sent: "Sent",
-  accepted: "Accepted",
-  rejected: "Rejected",
-  expired: "Expired",
-  cancelled: "Cancelled",
-};
-
-const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  draft: "secondary",
-  sent: "outline",
-  accepted: "default",
-  rejected: "destructive",
-  expired: "secondary",
-  cancelled: "destructive",
-};
 
 interface QuotesPageProps {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -74,7 +56,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
           {
             param: "status",
             value: params.status,
-            options: [{ value: "all", label: "All statuses" }, ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))],
+            options: [{ value: "all", label: "All statuses" }, ...Object.entries(QUOTE_STATUS_LABELS).map(([value, label]) => ({ value, label }))],
           },
         ]}
       />
@@ -117,7 +99,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
                     <TableCell>{new Date(quote.quote_date).toLocaleDateString("en-ZA")}</TableCell>
                     <TableCell>{formatCurrency(quote.total, settings.default_currency)}</TableCell>
                     <TableCell>
-                      <Badge variant={STATUS_VARIANTS[quote.status]}>{STATUS_LABELS[quote.status]}</Badge>
+                      <Badge variant={getQuoteDisplayStatus(quote).variant}>{getQuoteDisplayStatus(quote).label}</Badge>
                     </TableCell>
                   </TableRow>
                 ))}
