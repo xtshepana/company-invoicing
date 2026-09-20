@@ -100,6 +100,34 @@ test("customer through invoice, payment, and credit note", async ({ page }) => {
     await expect(page.getByText("R 115,00").first()).toBeVisible(); // 100 + 15% VAT
   });
 
+  await test.step("create a second invoice to apply that credit against", async () => {
+    await page.goto("/invoices/new");
+    await page.getByLabel("Customer", { exact: true }).click();
+    await page.getByRole("option", { name: customerName }).click();
+
+    const table = page.locator("table").first();
+    await table.getByPlaceholder("Description").fill("E2E second invoice");
+    const numberInputs = table.locator('tbody input[type="number"]');
+    await numberInputs.nth(1).fill("50"); // 50 + 15% VAT = 57.50, well under the R115 credit available
+
+    await page.getByRole("button", { name: "Create invoice" }).click();
+    await expect(page).toHaveURL(/\/invoices\/[0-9a-f-]+$/);
+  });
+
+  await test.step("apply the customer credit to it — apply_customer_credit() has no other test coverage", async () => {
+    await page.getByRole("button", { name: "Apply Credit", exact: true }).click();
+    // The dialog defaults the amount to min(credit available, invoice
+    // balance) = R57.50, which fully settles this invoice.
+    await page.getByRole("button", { name: "Apply credit", exact: true }).click();
+    await expect(page.getByText("Paid", { exact: true }).first()).toBeVisible({ timeout: SLOW_ACTION_TIMEOUT });
+    await expect(page.getByText("R 0,00").first()).toBeVisible();
+  });
+
+  await test.step("the customer's credit balance decreased by exactly the amount applied", async () => {
+    await page.goto(customerUrl);
+    await expect(page.getByText("R 57,50").first()).toBeVisible(); // 115.00 - 57.50
+  });
+
   await test.step("the customer statement renders", async () => {
     // role="button" again — same Base UI Button-rendered-as-Link pattern as "Export CSV"/"Go to Reconciliation".
     await page.getByRole("button", { name: "Statement" }).click();
