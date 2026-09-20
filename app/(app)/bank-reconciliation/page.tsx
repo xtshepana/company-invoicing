@@ -5,7 +5,7 @@ import { Upload, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ListFilters } from "@/components/shared/list-filters";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import { AutoMatchButton } from "@/components/bank/auto-match-button";
@@ -115,6 +115,7 @@ export default async function BankReconciliationPage({ searchParams }: BankRecon
             </div>
           ) : (
             <Table>
+              <TableCaption className="sr-only">Bank transactions</TableCaption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>

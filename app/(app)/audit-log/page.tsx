@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import { getCurrentProfile } from "@/server/services/auth";
 import { getAuditLogPage } from "@/server/services/audit-log-query";
@@ -38,6 +38,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
             <p className="p-6 text-sm text-muted-foreground">No activity recorded yet.</p>
           ) : (
             <Table>
+              <TableCaption className="sr-only">Audit log entries</TableCaption>
               <TableHeader>
                 <TableRow>
                   <TableHead>When</TableHead>

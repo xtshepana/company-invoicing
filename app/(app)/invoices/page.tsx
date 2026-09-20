@@ -5,7 +5,7 @@ import { Plus, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ListFilters } from "@/components/shared/list-filters";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
@@ -104,6 +104,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
             </div>
           ) : (
             <Table>
+              <TableCaption className="sr-only">Invoices</TableCaption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Invoice #</TableHead>

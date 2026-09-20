@@ -154,3 +154,7 @@ heading structure a screen reader can navigate by.
 report's per-customer bucketing now runs as a single grouped SQL query
 instead of fetching every outstanding invoice and bucketing it in JS —
 same fix, same reasoning as the dashboard's invoice totals.
+
+**Remaining accessibility polish (done):** every main list table now has
+a visually-hidden caption describing what it lists, and column headers
+get `scope="col"` by default across the whole app.

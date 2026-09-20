@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ListFilters } from "@/components/shared/list-filters";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import { ProductFormDialog } from "@/components/products/product-form-dialog";
@@ -91,6 +91,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             </div>
           ) : (
             <Table>
+              <TableCaption className="sr-only">Products and services</TableCaption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>

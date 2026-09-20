@@ -411,6 +411,19 @@ Deliberately left alone: reminder-cron parallelization — real but
 lower-priority, and partly intentional as-is (email sends shouldn't be
 fired concurrently against the provider).
 
+**Remaining accessibility polish (done):** the ten main list pages
+(customers, products, quotes, invoices, payments, credit notes,
+recurring invoices, bank reconciliation, users, audit log) each had a
+`<Table>` with no programmatic name — added a visually-hidden
+(`sr-only`) `<TableCaption>` to each describing what it lists.
+`TableHead` (`components/ui/table.tsx`) now defaults to `scope="col"`,
+covering every column header app-wide from one place rather than
+21 call sites. Left alone: the dashboard's dimmed
+"Available once banking is enabled" badge (`opacity-70` card +
+`variant="secondary"` badge) — flagged as a *plausible* contrast risk in
+the audit, not a confirmed one, and fixing it would mean guessing at a
+visual change rather than measuring against the actual theme colors.
+
 See the phase list in the original build spec — this closes out every
 module it named.
 

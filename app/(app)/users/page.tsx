@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCurrentProfile } from "@/server/services/auth";
 import { listProfiles } from "@/server/services/users";
 import { InviteUserDialog } from "@/components/users/invite-user-dialog";
@@ -40,6 +40,7 @@ export default async function UsersPage() {
             <p className="p-6 text-sm text-muted-foreground">No users found.</p>
           ) : (
             <Table>
+              <TableCaption className="sr-only">Staff users</TableCaption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
