@@ -14,6 +14,17 @@ export async function register() {
     const { getServerEnv } = await import("@/lib/env");
     const env = getServerEnv();
 
+    // Temporary diagnostic: npm_lifecycle_event === "start" didn't make the
+    // scheduler below fire on Hostinger either, so log the actual values
+    // instead of guessing a fourth env-var heuristic blind. Remove once the
+    // real gate is confirmed working there.
+    console.log("[daily-cron] env check", {
+      NODE_ENV: process.env.NODE_ENV,
+      npm_lifecycle_event: process.env.npm_lifecycle_event,
+      npm_execpath: process.env.npm_execpath,
+      argv: process.argv,
+    });
+
     // Hostinger's Node.js Web App hosting (unlike its classic PHP/shared
     // hosting) doesn't expose hPanel's Cron Jobs feature at all. The server
     // still runs as one persistent process either way, so the daily job is
@@ -24,15 +35,24 @@ export async function register() {
     // call repeatedly - including from multiple server instances, if this
     // ever runs on more than one.
     //
-    // Gated on npm_lifecycle_event === "start" (set by npm itself when it
-    // runs the "start" script, i.e. `next start`), not NODE_ENV - Next's
-    // CLI only sets NODE_ENV=production as a *fallback*
-    // (`process.env.NODE_ENV ||= 'production'`), so a host whose container
-    // pre-sets NODE_ENV=development (a common baseline default on several
-    // platforms) would silently skip this if it were gated on NODE_ENV
-    // instead, with no error logged anywhere. npm_lifecycle_event doesn't
-    // depend on what the platform pre-sets.
-    if (process.env.npm_lifecycle_event === "start") {
+    // Gated on .next/BUILD_ID existing (written by `next build`) AND
+    // npm_lifecycle_event not being "dev" - neither signal alone is
+    // reliable: BUILD_ID alone false-positives under `next dev` if a
+    // previous `next build`'s output is still sitting in .next/ (confirmed
+    // locally - it does), and npm_lifecycle_event alone didn't make this
+    // fire on Hostinger for a reason the diagnostic log above is here to
+    // reveal. Together: BUILD_ID rules out a plain dev checkout with no
+    // build at all, and excluding "dev" specifically rules out the stale-
+    // .next-during-`next dev` case, without depending on npm_lifecycle_event
+    // being "start" exactly (in case Hostinger doesn't set it, or sets
+    // something else) for the positive case.
+    const { existsSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const isProductionBuild = existsSync(join(process.cwd(), ".next", "BUILD_ID"));
+    const isDevServer = process.env.npm_lifecycle_event === "dev";
+    console.log("[daily-cron] isProductionBuild", isProductionBuild, "isDevServer", isDevServer);
+
+    if (isProductionBuild && !isDevServer) {
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;
       const triggerDailyCron = async () => {
         try {
