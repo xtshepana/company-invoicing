@@ -983,6 +983,19 @@ export type Database = {
         Args: Record<string, never>;
         Returns: { total_sales: number; total_paid: number; outstanding: number; overdue: number }[];
       };
+      get_aging_report: {
+        Args: { p_as_of: string };
+        Returns: {
+          customer_id: string;
+          customer_name: string | null;
+          bucket_current: number;
+          bucket_1_30: number;
+          bucket_31_60: number;
+          bucket_61_90: number;
+          bucket_90_plus: number;
+          total: number;
+        }[];
+      };
       apply_customer_credit: {
         Args: { p_amount: number; p_customer_id: string; p_invoice_id: string; p_notes: string };
         Returns: undefined;

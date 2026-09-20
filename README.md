@@ -149,3 +149,8 @@ the five places that filter on it. Icon-only controls that had no
 accessible name (mobile nav, account menu, remove-line-item,
 edit-product, list search) now do, and card-based pages have a real
 heading structure a screen reader can navigate by.
+
+**Aging report SQL aggregation (done):** the accounts-receivable aging
+report's per-customer bucketing now runs as a single grouped SQL query
+instead of fetching every outstanding invoice and bucketing it in JS —
+same fix, same reasoning as the dashboard's invoice totals.
