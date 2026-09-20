@@ -194,3 +194,7 @@ conversion.
 function every module in the app relies on for authorization, now has
 direct unit test coverage — a staff member is denied a module unless
 it's explicitly granted, with no fallback to "allowed".
+
+**Customer profile: quotes and credit notes (done):** a customer's
+profile page now also shows their recent quotes and recent credit
+notes, alongside the invoices/payments/balance it already showed.

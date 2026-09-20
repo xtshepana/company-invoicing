@@ -10,10 +10,14 @@ import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
 import { getCustomerById } from "@/server/services/customers";
 import { getCustomerInvoiceSummary } from "@/server/services/invoices";
 import { getCustomerCreditBalance, getCustomerRecentPayments } from "@/server/services/payments";
+import { getCustomerRecentQuotes } from "@/server/services/quotes";
+import { getCustomerRecentCreditNotes } from "@/server/services/credit-notes";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 import { ArchiveCustomerButton } from "@/components/customers/archive-customer-button";
 import { PAYMENT_METHOD_LABELS } from "@/lib/validations/payments";
+import { getQuoteDisplayStatus } from "@/lib/validations/quotes";
+import { CREDIT_NOTE_STATUS_LABELS } from "@/lib/validations/credit-notes";
 
 interface CustomerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -52,11 +56,13 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
   const canQuote = hasModuleAccess(profile, "quotes");
   const canPayments = hasModuleAccess(profile, "payments");
   const canRecurring = hasModuleAccess(profile, "recurring_invoices");
-  const [settings, invoiceSummary, creditBalance, recentPayments] = await Promise.all([
+  const [settings, invoiceSummary, creditBalance, recentPayments, recentQuotes, recentCreditNotes] = await Promise.all([
     getCompanySettings(),
     canInvoice ? getCustomerInvoiceSummary(id) : null,
     canPayments ? getCustomerCreditBalance(id) : null,
     canPayments ? getCustomerRecentPayments(id) : [],
+    canQuote ? getCustomerRecentQuotes(id) : null,
+    canInvoice ? getCustomerRecentCreditNotes(id) : null,
   ]);
   const currency = settings.default_currency;
 
@@ -188,6 +194,44 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
         </CardContent>
       </Card>
 
+      {canQuote ? (
+        <Card className={recentQuotes && recentQuotes.length > 0 ? "" : "opacity-70"}>
+          <CardHeader>
+            <CardTitle>Recent quotes</CardTitle>
+          </CardHeader>
+          <CardContent className={recentQuotes && recentQuotes.length > 0 ? "p-0" : ""}>
+            {!recentQuotes || recentQuotes.length === 0 ? (
+              <p className="p-6 text-sm text-muted-foreground">No quotes yet.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Quote #</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentQuotes.map((quote) => (
+                    <TableRow key={quote.id}>
+                      <TableCell className="font-medium">
+                        <Link href={`/quotes/${quote.id}`} className="hover:underline">
+                          {quote.quote_number}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{new Date(quote.quote_date).toLocaleDateString("en-ZA")}</TableCell>
+                      <TableCell>{formatCurrency(quote.total, currency)}</TableCell>
+                      <TableCell>{getQuoteDisplayStatus(quote).label}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card className={invoiceSummary && invoiceSummary.recentInvoices.length > 0 ? "" : "opacity-70"}>
         <CardHeader>
           <CardTitle>Recent invoices</CardTitle>
@@ -227,6 +271,44 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
           )}
         </CardContent>
       </Card>
+
+      {canInvoice ? (
+        <Card className={recentCreditNotes && recentCreditNotes.length > 0 ? "" : "opacity-70"}>
+          <CardHeader>
+            <CardTitle>Recent credit notes</CardTitle>
+          </CardHeader>
+          <CardContent className={recentCreditNotes && recentCreditNotes.length > 0 ? "p-0" : ""}>
+            {!recentCreditNotes || recentCreditNotes.length === 0 ? (
+              <p className="p-6 text-sm text-muted-foreground">No credit notes yet.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Credit note #</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentCreditNotes.map((creditNote) => (
+                    <TableRow key={creditNote.id}>
+                      <TableCell className="font-medium">
+                        <Link href={`/credit-notes/${creditNote.id}`} className="hover:underline">
+                          {creditNote.credit_note_number}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{new Date(creditNote.credit_note_date).toLocaleDateString("en-ZA")}</TableCell>
+                      <TableCell>{formatCurrency(creditNote.total, currency)}</TableCell>
+                      <TableCell>{CREDIT_NOTE_STATUS_LABELS[creditNote.status]}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {canPayments ? (
         <Card className={recentPayments.length > 0 ? "" : "opacity-70"}>

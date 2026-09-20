@@ -548,6 +548,23 @@ mocked at the top of the test file — neither is safe to execute outside
 a real Next.js request, and `hasModuleAccess()` itself never touches
 either.
 
+**Customer profile: quotes and credit notes (done):** the build spec
+explicitly names quotes and credit notes among what a customer profile
+must display, alongside invoices/payments/outstanding balance/statement
+— the page had the latter but not the former two.
+`getCustomerRecentQuotes()` (`server/services/quotes.ts`) and
+`getCustomerRecentCreditNotes()` (`server/services/credit-notes.ts`)
+follow the exact shape of the existing `getCustomerRecentPayments()`,
+gated behind the same `canQuote`/`canInvoice` module checks the page's
+other sections already use (credit notes live under the `"invoices"`
+module, same as `/credit-notes` itself). The quotes list reuses
+`getQuoteDisplayStatus()` (see the "Converted" quote status entry
+above) rather than a separate local status-label map. Verified live:
+ABC Technologies' profile now shows QUO-000001 as "Converted" under
+"Recent quotes" (consistent with the quotes list/detail pages), and
+"Recent credit notes" correctly renders its empty state rather than
+erroring, since that fixture customer has none.
+
 See the phase list in the original build spec — this closes out every
 module it named.
 
