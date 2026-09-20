@@ -184,3 +184,8 @@ under `/reports`.
 customer count, unpaid/overdue invoice counts, invoiced/paid this
 month, and recent-invoices/recent-payments lists — each gated behind
 the same per-module access checks as the existing totals.
+
+**Bank-match confidence levels (done):** suggested bank-transaction
+matches now show a High/Medium/Low confidence badge instead of an ad
+hoc "Exact amount"/"Name match" label, computed from the same signals
+that were already there.

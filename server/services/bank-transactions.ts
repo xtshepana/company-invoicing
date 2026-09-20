@@ -10,6 +10,45 @@ export type BankTransactionWithPayment = BankTransaction & {
   payments: { id: string; amount: number; payment_date: string; customers: { company_name: string } | null } | null;
 };
 
+/**
+ * How sure the suggestion is, for staff to weigh before accepting a
+ * match — never used to auto-apply anything beyond what
+ * auto_match_bank_transactions already does. HIGH means multiple
+ * independent signals agree (or the two signals that matter most for
+ * that candidate type); MEDIUM means exactly one; LOW means the
+ * candidate is only shown for completeness and shouldn't be trusted
+ * without checking.
+ */
+export type MatchConfidence = "high" | "medium" | "low";
+
+/**
+ * Amount is the primary signal — auto_match_bank_transactions itself
+ * never links on anything but an exact amount, so a candidate payment
+ * whose amount doesn't match is only ever a low-confidence, speculative
+ * suggestion regardless of how close the dates are. Pulled out as a pure
+ * function so the tiering rule is directly unit-testable without needing
+ * a database.
+ */
+export function computePaymentMatchConfidence(amountMatches: boolean, daysApart: number): MatchConfidence {
+  if (!amountMatches) return "low";
+  return daysApart <= 3 ? "high" : "medium";
+}
+
+/**
+ * Both signals agreeing is the best case available for an invoice that
+ * has no matching payment yet; exactly one signal is a reasonable lead
+ * worth checking. `listCandidateInvoices` only ever returns rows where at
+ * least one signal is true, so "low" doesn't occur in practice there —
+ * kept as a real case here for a consistent type with
+ * computePaymentMatchConfidence rather than a two-value enum just for
+ * this one caller.
+ */
+export function computeInvoiceMatchConfidence(amountMatches: boolean, nameMatches: boolean): MatchConfidence {
+  if (amountMatches && nameMatches) return "high";
+  if (amountMatches || nameMatches) return "medium";
+  return "low";
+}
+
 export interface CandidatePayment {
   id: string;
   customer_id: string;
@@ -20,6 +59,7 @@ export interface CandidatePayment {
   customers: { company_name: string } | null;
   amountMatches: boolean;
   daysApart: number;
+  confidence: MatchConfidence;
 }
 
 export interface CandidateInvoice {
@@ -32,6 +72,7 @@ export interface CandidateInvoice {
   customers: { company_name: string } | null;
   amountMatches: boolean;
   nameMatches: boolean;
+  confidence: MatchConfidence;
 }
 
 const PAGE_SIZE = 25;
@@ -139,11 +180,12 @@ export async function listCandidatePayments(amount: number, transactionDate: str
 
   return (payments ?? [])
     .filter((payment) => !matchedIds.has(payment.id))
-    .map((payment) => ({
-      ...payment,
-      amountMatches: Math.abs(payment.amount - amount) < 0.005,
-      daysApart: Math.abs(new Date(`${payment.payment_date}T00:00:00Z`).getTime() - targetDate) / 86_400_000,
-    }))
+    .map((payment) => {
+      const amountMatches = Math.abs(payment.amount - amount) < 0.005;
+      const daysApart = Math.abs(new Date(`${payment.payment_date}T00:00:00Z`).getTime() - targetDate) / 86_400_000;
+      const confidence = computePaymentMatchConfidence(amountMatches, daysApart);
+      return { ...payment, amountMatches, daysApart, confidence };
+    })
     .sort((a, b) => {
       if (a.amountMatches !== b.amountMatches) return a.amountMatches ? -1 : 1;
       return a.daysApart - b.daysApart;
@@ -202,11 +244,12 @@ export async function listCandidateInvoices(
     .limit(300);
 
   return (invoices ?? [])
-    .map((invoice) => ({
-      ...invoice,
-      amountMatches: Math.abs((invoice.balance_due ?? 0) - amount) < 0.005,
-      nameMatches: invoice.customers ? customerNameAppearsIn(invoice.customers.company_name, haystack) : false,
-    }))
+    .map((invoice) => {
+      const amountMatches = Math.abs((invoice.balance_due ?? 0) - amount) < 0.005;
+      const nameMatches = invoice.customers ? customerNameAppearsIn(invoice.customers.company_name, haystack) : false;
+      const confidence = computeInvoiceMatchConfidence(amountMatches, nameMatches);
+      return { ...invoice, amountMatches, nameMatches, confidence };
+    })
     .filter((invoice) => invoice.amountMatches || invoice.nameMatches)
     .sort((a, b) => {
       const aScore = (a.amountMatches ? 2 : 0) + (a.nameMatches ? 1 : 0);
