@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
-import { getBankTransactionById, listCandidatePayments } from "@/server/services/bank-transactions";
+import { getBankTransactionById, listCandidatePayments, listCandidateInvoices } from "@/server/services/bank-transactions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -23,6 +23,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Bank transaction not found." }, { status: 404 });
   }
 
-  const candidates = await listCandidatePayments(transaction.amount, transaction.transaction_date);
-  return NextResponse.json({ candidates });
+  const [candidates, invoiceCandidates] = await Promise.all([
+    listCandidatePayments(transaction.amount, transaction.transaction_date),
+    transaction.status === "unmatched"
+      ? listCandidateInvoices(transaction.amount, transaction.description, transaction.reference)
+      : Promise.resolve([]),
+  ]);
+  return NextResponse.json({ candidates, invoiceCandidates });
 }

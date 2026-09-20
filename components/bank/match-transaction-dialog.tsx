@@ -18,7 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { matchBankTransactionAction } from "@/server/actions/bank-transaction-actions";
 import { formatCurrency } from "@/lib/money";
-import type { CandidatePayment } from "@/server/services/bank-transactions";
+import type { CandidatePayment, CandidateInvoice } from "@/server/services/bank-transactions";
 
 interface BankTransactionSummary {
   id: string;
@@ -38,6 +38,7 @@ export function MatchTransactionDialog({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [candidates, setCandidates] = useState<CandidatePayment[]>([]);
+  const [invoiceCandidates, setInvoiceCandidates] = useState<CandidateInvoice[]>([]);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -47,9 +48,21 @@ export function MatchTransactionDialog({
       setLoading(true);
       fetch(`/api/bank-transactions/${transaction.id}/candidates`)
         .then((res) => res.json())
-        .then((data) => setCandidates(data.candidates ?? []))
+        .then((data) => {
+          setCandidates(data.candidates ?? []);
+          setInvoiceCandidates(data.invoiceCandidates ?? []);
+        })
         .finally(() => setLoading(false));
     }
+  }
+
+  function newPaymentHrefForCustomer(customerId: string) {
+    return (
+      `/payments/new?customer=${customerId}&bank_transaction_id=${transaction.id}` +
+      `&amount=${transaction.amount}&date=${transaction.transaction_date}` +
+      `&reference=${encodeURIComponent(transaction.reference ?? "")}` +
+      `&description=${encodeURIComponent(transaction.description)}`
+    );
   }
 
   function handleMatch(paymentId: string) {
@@ -89,38 +102,86 @@ export function MatchTransactionDialog({
         </DialogHeader>
 
         {loading ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Loading candidate payments…</p>
-        ) : candidates.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No unmatched payments to link. Record a new payment for this transaction instead.
-          </p>
+          <p className="py-6 text-center text-sm text-muted-foreground">Loading candidates…</p>
         ) : (
-          <div className="max-h-80 space-y-2 overflow-y-auto">
-            {candidates.map((candidate) => (
-              <div
-                key={candidate.id}
-                className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm"
-              >
-                <div>
-                  <div className="font-medium">{candidate.customers?.company_name ?? "Unknown customer"}</div>
-                  <div className="text-muted-foreground">
-                    {new Date(candidate.payment_date).toLocaleDateString("en-ZA")}
-                    {candidate.bank_reference ? ` · ${candidate.bank_reference}` : ""}
+          <div className="max-h-96 space-y-4 overflow-y-auto">
+            {candidates.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Existing payments</p>
+                {candidates.map((candidate) => (
+                  <div
+                    key={candidate.id}
+                    className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm"
+                  >
+                    <div>
+                      <div className="font-medium">{candidate.customers?.company_name ?? "Unknown customer"}</div>
+                      <div className="text-muted-foreground">
+                        {new Date(candidate.payment_date).toLocaleDateString("en-ZA")}
+                        {candidate.bank_reference ? ` · ${candidate.bank_reference}` : ""}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {candidate.amountMatches ? (
+                        <Badge variant="default" className="text-xs">
+                          Exact amount
+                        </Badge>
+                      ) : null}
+                      <span className="font-medium">{formatCurrency(candidate.amount, currency)}</span>
+                      <Button size="sm" disabled={pending} onClick={() => handleMatch(candidate.id)}>
+                        Link
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {candidate.amountMatches ? (
-                    <Badge variant="default" className="text-xs">
-                      Exact amount
-                    </Badge>
-                  ) : null}
-                  <span className="font-medium">{formatCurrency(candidate.amount, currency)}</span>
-                  <Button size="sm" disabled={pending} onClick={() => handleMatch(candidate.id)}>
-                    Link
-                  </Button>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : null}
+
+            {invoiceCandidates.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Suggested invoices — no payment recorded yet
+                </p>
+                {invoiceCandidates.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm"
+                  >
+                    <div>
+                      <div className="font-medium">{invoice.customers?.company_name ?? "Unknown customer"}</div>
+                      <div className="text-muted-foreground">
+                        {invoice.invoice_number} · due {new Date(invoice.due_date).toLocaleDateString("en-ZA")}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {invoice.amountMatches ? (
+                        <Badge variant="default" className="text-xs">
+                          Exact amount
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">
+                          Name match
+                        </Badge>
+                      )}
+                      <span className="font-medium">{formatCurrency(invoice.balance_due, currency)}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        render={<Link href={newPaymentHrefForCustomer(invoice.customer_id)} />}
+                        nativeButton={false}
+                      >
+                        Record Payment
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {candidates.length === 0 && invoiceCandidates.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No unmatched payments or likely invoices found. Record a new payment for this transaction instead.
+              </p>
+            ) : null}
           </div>
         )}
 
