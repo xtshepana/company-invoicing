@@ -221,3 +221,9 @@ restricted e2e login (staff role, only the Customers module granted)
 confirms the real page-level redirects work — reachable at
 `/customers`, redirected to `/dashboard` from every accounting/admin
 page it wasn't granted.
+
+**Apply-credit and new-report e2e coverage (done):** applying existing
+customer credit to another invoice — previously untested at any
+level — now has e2e coverage, and the Sales & Income / Bank
+Reconciliation reports added earlier this session now render and
+CSV-export in the e2e suite alongside VAT and aging.

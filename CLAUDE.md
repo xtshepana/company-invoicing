@@ -675,6 +675,24 @@ against a production build and the real Supabase project:
 `npx playwright test tests/e2e/staff-permissions.spec.ts` (9 passed —
 2 setup logins + 7 assertions).
 
+**Apply-credit and new-report e2e coverage (done):** two more gaps
+found by walking the build spec's full critical end-to-end test list
+against what actually exists. `apply_customer_credit()` (Phase 4,
+"Apply this credit to another invoice") had **zero** test coverage at
+any level — not unit, not e2e — despite being a core RPC with the same
+row-locking/balance-validation invariants as `record_payment()`.
+`core-workflow.spec.ts` now creates a second invoice after issuing the
+credit note and applies the existing R115 credit against it via the
+"Apply Credit" dialog, confirming the invoice becomes `Paid` and the
+customer's credit balance decreases by exactly the amount applied
+(115.00 → 57.50). Separately, `reports.spec.ts` predated this
+session's Sales & Income and Bank Reconciliation reports (see the
+"Sales & bank-reconciliation reports" entry above) — it now also
+renders and CSV-exports both, and its "reports index" step checks for
+all four report cards instead of the original two. Actually run, not
+just written — `npx playwright test tests/e2e/core-workflow.spec.ts
+tests/e2e/reports.spec.ts` (4 passed).
+
 See the phase list in the original build spec — this closes out every
 module it named.
 
