@@ -179,3 +179,8 @@ one real timeout risk left from the earlier audit.
 Bank Reconciliation Report (matched/unmatched/ignored transaction value
 for a period, with CSV export) join the existing VAT and aging reports
 under `/reports`.
+
+**Permission enforcement tests (done):** `hasModuleAccess()`, the single
+function every module in the app relies on for authorization, now has
+direct unit test coverage — a staff member is denied a module unless
+it's explicitly granted, with no fallback to "allowed".

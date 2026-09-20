@@ -496,6 +496,25 @@ has a status filter including "overdue"), the existing `/payments` list,
 and the aging report's per-customer `total` column (which already *is*
 each customer's current balance).
 
+**Permission enforcement tests (done):** the build spec explicitly names
+"verify Staff cannot perform restricted accounting/admin actions" as a
+testing requirement, and there was no test coverage for it at all —
+`hasModuleAccess()` (`server/services/auth.ts`) gates every module in
+the entire app, and it had zero direct tests despite being the single
+point every server action/route handler relies on for authorization.
+`tests/unit/permissions.test.ts` covers it directly: owner_admin/
+accountant bypass regardless of `staff_module_permissions`; a staff
+member is denied everything when that column is `null` or `{}`; a staff
+member is granted only the modules explicitly set `true` (both an
+explicit `false` and an absent key must deny — a staff member must never
+fall back to "allowed"); unrelated profile fields (name, email) have no
+bearing on the result. Since `server/services/auth.ts` imports
+`server-only` and transitively `lib/supabase/server.ts` (which imports
+`next/headers`), both `"server-only"` and `"@/lib/supabase/server"` are
+mocked at the top of the test file — neither is safe to execute outside
+a real Next.js request, and `hasModuleAccess()` itself never touches
+either.
+
 See the phase list in the original build spec — this closes out every
 module it named.
 
