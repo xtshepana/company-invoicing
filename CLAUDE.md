@@ -453,7 +453,7 @@ with no such error. The same file's `onRequestError` logs every uncaught
 server error as a structured `console.error` — this app has no
 third-party observability provider (Sentry etc.) and adding one is a
 decision for whoever runs this in production, not something to wire up
-silently. `next.config.ts` sets baseline security headers on every
+silently. `next.config.mjs` sets baseline security headers on every
 response (`X-Content-Type-Options`, `X-Frame-Options`,
 `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) —
 confirmed live via `curl -I` against a production build. Deliberately no
