@@ -164,6 +164,25 @@ export async function getPaidThisMonth(): Promise<number> {
   return (data ?? []).reduce((sum, r) => sum + r.amount, 0);
 }
 
+/** For the dashboard revenue chart — same bounded/JS-bucketed approach as getMonthlyInvoicedTotals. */
+export async function getMonthlyPaymentTotals(months: number): Promise<{ month: string; total: number }[]> {
+  const supabase = await createSupabaseServerClient();
+  const now = new Date();
+  const rangeStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
+
+  const { data } = await supabase
+    .from("payments")
+    .select("payment_date, amount")
+    .gte("payment_date", rangeStart.toISOString().slice(0, 10));
+
+  const totals = new Map<string, number>();
+  for (const row of data ?? []) {
+    const key = row.payment_date.slice(0, 7);
+    totals.set(key, (totals.get(key) ?? 0) + row.amount);
+  }
+  return [...totals.entries()].map(([month, total]) => ({ month, total })).sort((a, b) => a.month.localeCompare(b.month));
+}
+
 export interface RecentPaymentItem {
   id: string;
   customerName: string;

@@ -8,6 +8,13 @@ import type { Instrumentation } from "next";
  * confusing 500 on whichever request happens to touch that var first.
  * Guarded to the Node.js runtime since proxy.ts (the only edge-runtime
  * code in this app) only ever reads the public env vars, not these.
+ *
+ * The daily cron job is NOT scheduled from here (a boot-time
+ * setTimeout/setInterval was tried and reverted — see lib/cron-trigger.ts
+ * for why: Hostinger's Node.js hosting runs this app through LiteSpeed's
+ * lsnode.js, which cycles Node processes on a FastCGI-like model rather
+ * than keeping one alive indefinitely, so a boot-time timer can't reliably
+ * survive long enough to fire).
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {

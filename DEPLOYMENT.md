@@ -69,7 +69,8 @@ Running it more than once on the same day is safe: invoice generation is
 idempotent per `(recurring_invoice_id, invoice_date)` and reminders are
 deduplicated per `(invoice_id, offset_days)`.
 
-**hPanel → Advanced → Cron Jobs → Create a new cron job:**
+**If your plan is classic PHP/shared hosting**, hPanel exposes
+**Advanced → Cron Jobs**:
 
 - **Common Settings**: Once Per Day, at a low-traffic hour (e.g. 02:00).
 - **Command**: use hPanel's "Send an HTTP request" option if available;
@@ -80,7 +81,26 @@ deduplicated per `(invoice_id, offset_days)`.
   Replace `YOUR_CRON_SECRET` with the exact value of `CRON_SECRET` from
   step 4, and the URL with your production `NEXT_PUBLIC_APP_URL`.
 
-To test manually before relying on the schedule:
+**If your plan is Hostinger's Node.js Web App hosting** (GitHub-integrated
+deploys, `hbuilds/versions/...` on disk, a "Runtime Logs" panel instead of
+classic hPanel tools) — this is the case for most setups following this
+guide — **hPanel does not expose Cron Jobs for this hosting type at all**,
+even though it's on the same account as other sites that do have it. No
+action is needed here: `lib/cron-trigger.ts`'s `maybeTriggerDailyCron()`,
+called from the `(app)` layout on every authenticated page load, fires
+this job in the background instead. A boot-time timer (the first thing
+tried) doesn't work on this host — its Node.js processes run under
+LiteSpeed's `lsnode.js`, which cycles processes on a FastCGI-like model
+rather than keeping one alive indefinitely, so a `setTimeout`/`setInterval`
+scheduled once at startup can't reliably survive long enough to fire.
+Riding along on real requests sidesteps that: any staff member loading any
+page during the day triggers the check, an in-memory per-process flag
+avoids refiring on every navigation, and the job's own idempotency (below)
+makes it harmless if multiple short-lived processes each fire it once on
+the same day. The tradeoff is it no longer runs at a specific low-traffic
+hour — it runs shortly after the first page load of the day instead.
+
+To test manually regardless of which path applies to you:
 
 ```bash
 curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://yourdomain.com/api/cron/daily
@@ -116,7 +136,7 @@ Actions) is also logged there as a structured `[server error]` line via
 provider wired up (Sentry, etc.); that's a decision for whoever runs this
 in production, not something assumed here.
 
-`next.config.ts` sets baseline security headers on every response
+`next.config.mjs` sets baseline security headers on every response
 (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
 `Permissions-Policy`, `Strict-Transport-Security`) — no custom
 Content-Security-Policy, since a strict CSP needs tuning against actual

@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCurrentProfile } from "@/server/services/auth";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
+import { LogoUploadForm } from "@/components/settings/logo-upload-form";
+import { BrandColorForm } from "@/components/settings/brand-color-form";
 import { BankDetailsForm } from "@/components/settings/bank-details-form";
 import { InvoiceSettingsForm } from "@/components/settings/invoice-settings-form";
 
@@ -29,6 +31,7 @@ export default async function SettingsPage() {
       <Tabs defaultValue="company">
         <TabsList>
           <TabsTrigger value="company">Company profile</TabsTrigger>
+          <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="invoicing">VAT &amp; invoicing</TabsTrigger>
           <TabsTrigger value="bank">Bank details</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
@@ -38,8 +41,20 @@ export default async function SettingsPage() {
             <CardHeader>
               <CardTitle>Company profile</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              <LogoUploadForm key={settings.logo_url} logoUrl={settings.logo_url} />
               <CompanyProfileForm key={settings.updated_at} settings={settings} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="appearance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>Pick a brand color for the app and your documents.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BrandColorForm key={settings.brand_color} brandColor={settings.brand_color} />
             </CardContent>
           </Card>
         </TabsContent>

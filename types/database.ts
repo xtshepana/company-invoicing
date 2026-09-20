@@ -62,6 +62,7 @@ export type Database = {
           bank_account_type: string;
           bank_branch_code: string;
           bank_name: string;
+          brand_color: string | null;
           company_name: string;
           credit_note_next_number: number;
           credit_note_prefix: string;
