@@ -90,7 +90,10 @@ persistent process rather than spinning up per request. It fires ~30
 seconds after the server starts, then every 24 hours after that — not
 pinned to a specific low-traffic hour, but harmless to run at any hour
 given the idempotency guarantee below, and only active when
-`NODE_ENV=production` (a local `npm run dev` never triggers it).
+the `start` npm script (a local `npm run dev` never triggers it) —
+deliberately not gated on `NODE_ENV`, since some hosts (Hostinger's
+Node.js Web App hosting among them) pre-set `NODE_ENV=development` in
+the container regardless of which script actually runs.
 
 To test manually regardless of which path applies to you:
 

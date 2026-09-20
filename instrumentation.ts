@@ -22,9 +22,17 @@ export async function register() {
     // importing its logic directly, so this stays a thin trigger and the
     // route's own idempotency (see that file) is what makes it safe to
     // call repeatedly - including from multiple server instances, if this
-    // ever runs on more than one. Gated to production so `npm run dev`
-    // never fires real invoice generation/reminder emails on a whim.
-    if (process.env.NODE_ENV === "production") {
+    // ever runs on more than one.
+    //
+    // Gated on npm_lifecycle_event === "start" (set by npm itself when it
+    // runs the "start" script, i.e. `next start`), not NODE_ENV - Next's
+    // CLI only sets NODE_ENV=production as a *fallback*
+    // (`process.env.NODE_ENV ||= 'production'`), so a host whose container
+    // pre-sets NODE_ENV=development (a common baseline default on several
+    // platforms) would silently skip this if it were gated on NODE_ENV
+    // instead, with no error logged anywhere. npm_lifecycle_event doesn't
+    // depend on what the platform pre-sets.
+    if (process.env.npm_lifecycle_event === "start") {
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;
       const triggerDailyCron = async () => {
         try {
