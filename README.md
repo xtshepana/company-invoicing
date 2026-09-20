@@ -199,3 +199,9 @@ it's explicitly granted, with no fallback to "allowed".
 matches now show a High/Medium/Low confidence badge instead of an ad
 hoc "Exact amount"/"Name match" label, computed from the same signals
 that were already there.
+
+**Split-payment and overpayment e2e coverage (done):** two new
+end-to-end tests cover scenarios the existing suite didn't — a single
+payment split across two invoices via auto-allocate, and an overpayment
+that correctly becomes customer credit rather than being rejected or
+floored.
