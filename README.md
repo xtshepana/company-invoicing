@@ -166,3 +166,10 @@ server errors are logged with structured context, and every response
 carries baseline security headers (`X-Frame-Options`,
 `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`,
 `Strict-Transport-Security`). See `DEPLOYMENT.md` step 9.
+
+**Reminder-cron timeout review (done):** the daily cron's reminder query
+now filters to the exact due dates a reminder can ever fire on, instead
+of fetching every outstanding invoice in the system, and PDF/email
+sending (the actually expensive, rate-limited step) runs with bounded
+concurrency separately from the cheap database-only steps — closing the
+one real timeout risk left from the earlier audit.
