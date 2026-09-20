@@ -1,0 +1,4 @@
+# Default owner for everything in this repo. Add path-specific rules
+# below this line as the team grows — a later, more specific rule
+# overrides this one for the paths it matches.
+* @xtshepana
