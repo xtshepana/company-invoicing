@@ -472,6 +472,26 @@ verified by code review of the exact offset-day arithmetic (`addDays`/
 `dateDiffInDays` are exact inverses, both plain UTC date math) rather
 than by observing a live send.
 
+**Dashboard metrics (done):** the dashboard only showed all-time
+sales/paid/outstanding/overdue totals and an admin-only audit-log feed —
+missing several metrics the build spec explicitly calls for: customer
+count, unpaid/overdue invoice counts, invoiced/paid *this month*, and
+recent-invoices/recent-payments lists (distinct from the audit log,
+which mixes in logins, settings changes, etc.). Added
+`getActiveCustomerCount()` (customers.ts), `getInvoiceCountStats()` +
+`getRecentInvoices()` (invoices.ts), and `getPaidThisMonth()` +
+`getRecentPayments()` (payments.ts) — counts use
+`{count: "exact", head: true}` (no rows fetched), and the month-scoped
+sums are naturally bounded to one month's rows rather than the
+all-time-scan mistakes fixed earlier in the audit. Each new card/list is
+gated behind the same per-module `hasModuleAccess()` checks the existing
+sales/outstanding cards already use. Verified live against real fixture
+data down to the edge cases: a `void` invoice is correctly excluded from
+both "unpaid" and "invoiced this month" (confirmed against the actual
+per-invoice status list), and a `paid` invoice is correctly excluded
+from "unpaid" — the displayed unpaid count of 1 matches exactly one
+`partially_paid` invoice out of three total.
+
 See the phase list in the original build spec — this closes out every
 module it named.
 

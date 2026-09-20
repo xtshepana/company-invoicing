@@ -105,3 +105,74 @@ export async function getInvoiceSummaryTotals() {
     overdue: data.overdue,
   };
 }
+
+export interface InvoiceCountStats {
+  unpaidCount: number;
+  overdueCount: number;
+  invoicedThisMonth: number;
+}
+
+function currentMonthStart(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10);
+}
+
+/**
+ * For the dashboard — counts only (`{count: "exact", head: true}`, no rows
+ * fetched), plus "invoiced this month" which is naturally bounded to one
+ * month's rows rather than an all-time reduce.
+ */
+export async function getInvoiceCountStats(): Promise<InvoiceCountStats> {
+  const supabase = await createSupabaseServerClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = currentMonthStart();
+
+  const [{ count: unpaidCount }, { count: overdueCount }, { data: monthInvoices }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("id", { count: "exact", head: true })
+      .gt("balance_due", 0)
+      .not("status", "in", "(cancelled,void)"),
+    supabase
+      .from("invoices")
+      .select("id", { count: "exact", head: true })
+      .gt("balance_due", 0)
+      .lt("due_date", today)
+      .not("status", "in", "(cancelled,void)"),
+    supabase.from("invoices").select("total").gte("invoice_date", monthStart).not("status", "in", "(cancelled,void)"),
+  ]);
+
+  return {
+    unpaidCount: unpaidCount ?? 0,
+    overdueCount: overdueCount ?? 0,
+    invoicedThisMonth: (monthInvoices ?? []).reduce((sum, r) => sum + r.total, 0),
+  };
+}
+
+export interface RecentInvoiceItem {
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  total: number;
+  status: Invoice["status"];
+  invoiceDate: string;
+}
+
+/** For the dashboard's "recent invoices" list. */
+export async function getRecentInvoices(limit: number): Promise<RecentInvoiceItem[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("invoices")
+    .select("id, invoice_number, total, status, invoice_date, customers(company_name)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (data ?? []).map((inv) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoice_number,
+    customerName: inv.customers?.company_name ?? "—",
+    total: inv.total,
+    status: inv.status,
+    invoiceDate: inv.invoice_date,
+  }));
+}

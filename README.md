@@ -173,3 +173,8 @@ of fetching every outstanding invoice in the system, and PDF/email
 sending (the actually expensive, rate-limited step) runs with bounded
 concurrency separately from the cheap database-only steps — closing the
 one real timeout risk left from the earlier audit.
+
+**Dashboard metrics (done):** the dashboard now also shows active
+customer count, unpaid/overdue invoice counts, invoiced/paid this
+month, and recent-invoices/recent-payments lists — each gated behind
+the same per-module access checks as the existing totals.
