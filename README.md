@@ -9,7 +9,8 @@ and authorized staff sign in with roles (Owner/Admin, Accountant, Staff).
 See `AGENTS.md` for the Next.js 16 breaking-change notes (this project uses
 `proxy.ts`, not `middleware.ts` — see the "Architecture notes" section
 below), `SETUP.md` for local setup, and `DEPLOYMENT.md` for deploying to
-Hostinger.
+Hostinger. Working on this repo? See `CONTRIBUTING.md`. Found a security
+issue? See `SECURITY.md` rather than opening a public issue.
 
 ## Stack
 
