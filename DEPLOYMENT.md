@@ -67,7 +67,8 @@ Running it more than once on the same day is safe: invoice generation is
 idempotent per `(recurring_invoice_id, invoice_date)` and reminders are
 deduplicated per `(invoice_id, offset_days)`.
 
-**hPanel → Advanced → Cron Jobs → Create a new cron job:**
+**If your plan is classic PHP/shared hosting**, hPanel exposes
+**Advanced → Cron Jobs**:
 
 - **Common Settings**: Once Per Day, at a low-traffic hour (e.g. 02:00).
 - **Command**: use hPanel's "Send an HTTP request" option if available;
@@ -78,7 +79,20 @@ deduplicated per `(invoice_id, offset_days)`.
   Replace `YOUR_CRON_SECRET` with the exact value of `CRON_SECRET` from
   step 4, and the URL with your production `NEXT_PUBLIC_APP_URL`.
 
-To test manually before relying on the schedule:
+**If your plan is Hostinger's Node.js Web App hosting** (GitHub-integrated
+deploys, `hbuilds/versions/...` on disk, a "Runtime Logs" panel instead of
+classic hPanel tools) — this is the case for most setups following this
+guide — **hPanel does not expose Cron Jobs for this hosting type at all**,
+even though it's on the same account as other sites that do have it. No
+action is needed here: `instrumentation.ts` schedules this same job
+in-process instead, since the Node.js server already runs as one
+persistent process rather than spinning up per request. It fires ~30
+seconds after the server starts, then every 24 hours after that — not
+pinned to a specific low-traffic hour, but harmless to run at any hour
+given the idempotency guarantee below, and only active when
+`NODE_ENV=production` (a local `npm run dev` never triggers it).
+
+To test manually regardless of which path applies to you:
 
 ```bash
 curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://yourdomain.com/api/cron/daily

@@ -104,7 +104,7 @@ ledger + applying credit to another invoice, customer statements
 
 **Phase 5 (done):** recurring invoices with pause/resume/cancel/skip-next,
 idempotent daily cron generation (`app/api/cron/daily`, see
-`DEPLOYMENT.md` for the Hostinger cron panel setup), automatic payment
+`DEPLOYMENT.md` for how the daily run is scheduled), automatic payment
 reminder emails (configurable on/off in Settings), and transactional email
 (invoice sent, quote sent, payment receipt, recurring invoice generated,
 payment reminder) via Resend — every send is logged to `email_logs`
