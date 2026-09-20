@@ -19,3 +19,15 @@ export const agingReportSearchSchema = z.object({
   asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(today),
 });
 export type AgingReportSearchInput = z.infer<typeof agingReportSearchSchema>;
+
+export const salesReportSearchSchema = z.object({
+  start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(firstOfMonth),
+  end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(today),
+});
+export type SalesReportSearchInput = z.infer<typeof salesReportSearchSchema>;
+
+export const bankReconciliationReportSearchSchema = z.object({
+  start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(firstOfMonth),
+  end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(today),
+});
+export type BankReconciliationReportSearchInput = z.infer<typeof bankReconciliationReportSearchSchema>;
