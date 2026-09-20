@@ -15,6 +15,14 @@ const nextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // pdfkit (used by @react-pdf/renderer) loads its standard font metrics via
+  // a dynamic require Next's file tracer can't statically discover, so the
+  // trace used by hosts that deploy a minimized file set (e.g. Hostinger)
+  // drops them, producing "Cannot find module .../standard-fonts/*.cjs" at
+  // runtime even though the build itself succeeds.
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/pdfkit/**/*"],
+  },
 };
 
 export default nextConfig;
