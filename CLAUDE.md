@@ -472,6 +472,30 @@ verified by code review of the exact offset-day arithmetic (`addDays`/
 `dateDiffInDays` are exact inverses, both plain UTC date math) rather
 than by observing a live send.
 
+**Sales & bank-reconciliation reports (done):** `/reports` only had VAT
+and aging — two genuine gaps closed. `getSalesReport()` shows invoiced
+revenue (accrual, by `invoice_date`) and payments received (cash, by
+`payment_date`) side by side for a period, since they're genuinely
+different numbers (an unpaid invoice is a sale with no income yet; a
+customer paying an old invoice is income with no new sale) — this single
+page covers what would otherwise be two near-identical "Sales report"
+and "Income report" pages. `getBankReconciliationReport()` is the
+month-end counterpart to the live `/bank-reconciliation` worklist: a
+date-ranged view with actual amounts (matched/unmatched/ignored value,
+not just all-time counts). Both have a CSV export following the existing
+`vat.csv`/`aging.csv` pattern. Verified live against real fixture data:
+the sales report's income figure (R3,000) and sales-incl-VAT figure
+(R8,625) match the dashboard's existing totals exactly, and the bank
+reconciliation report correctly shows all-zero when
+`bank_transactions` has no rows (confirmed against the live worklist,
+which also shows 0/0/0) rather than erroring or fabricating data.
+Deliberately did not add separate "Invoice report" / "Payment report" /
+"Outstanding invoices" / "Customer balances" pages — these would
+duplicate, respectively: the existing `/invoices` list (which already
+has a status filter including "overdue"), the existing `/payments` list,
+and the aging report's per-customer `total` column (which already *is*
+each customer's current balance).
+
 See the phase list in the original build spec — this closes out every
 module it named.
 

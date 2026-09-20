@@ -148,3 +148,167 @@ export async function getAgingReport(asOfDate: string): Promise<AgingReportResul
 
   return { asOfDate, rows, totals };
 }
+
+export interface SalesReportInvoiceRow {
+  id: string;
+  invoiceNumber: string;
+  date: string;
+  customerName: string;
+  subtotal: number;
+  vatTotal: number;
+  total: number;
+}
+
+export interface SalesReportPaymentRow {
+  id: string;
+  date: string;
+  customerName: string;
+  paymentMethod: string;
+  bankReference: string;
+  amount: number;
+}
+
+export interface SalesReportResult {
+  periodStart: string;
+  periodEnd: string;
+  invoicedExclVat: number;
+  invoicedInclVat: number;
+  invoiceCount: number;
+  paymentsReceived: number;
+  paymentCount: number;
+  invoices: SalesReportInvoiceRow[];
+  payments: SalesReportPaymentRow[];
+}
+
+/**
+ * "Sales" and "income" are two different bases over the same period, so
+ * this covers both rather than building two near-identical pages:
+ * invoiced revenue is accrual (same basis as the VAT report — booked on
+ * invoice_date regardless of whether it's been paid), while payments
+ * received is cash basis (booked on payment_date regardless of which
+ * invoice_date they were allocated against). A business can have sales
+ * with no income yet (an unpaid invoice) or income with no new sales
+ * (a customer finally paying an old invoice) — showing both side by side
+ * makes that visible instead of conflating them into one number.
+ */
+export async function getSalesReport(periodStart: string, periodEnd: string): Promise<SalesReportResult> {
+  const supabase = await createSupabaseServerClient();
+
+  const [{ data: invoices }, { data: payments }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("id, invoice_number, invoice_date, subtotal, vat_total, total, customers(company_name)")
+      .gte("invoice_date", periodStart)
+      .lte("invoice_date", periodEnd)
+      .not("status", "in", "(cancelled,void)")
+      .order("invoice_date", { ascending: true }),
+    supabase
+      .from("payments")
+      .select("id, payment_date, amount, payment_method, bank_reference, customers(company_name)")
+      .gte("payment_date", periodStart)
+      .lte("payment_date", periodEnd)
+      .order("payment_date", { ascending: true }),
+  ]);
+
+  const invoiceRows: SalesReportInvoiceRow[] = (invoices ?? []).map((inv) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoice_number,
+    date: inv.invoice_date,
+    customerName: inv.customers?.company_name ?? "—",
+    subtotal: inv.subtotal,
+    vatTotal: inv.vat_total,
+    total: inv.total,
+  }));
+
+  const paymentRows: SalesReportPaymentRow[] = (payments ?? []).map((p) => ({
+    id: p.id,
+    date: p.payment_date,
+    customerName: p.customers?.company_name ?? "—",
+    paymentMethod: p.payment_method,
+    bankReference: p.bank_reference ?? "",
+    amount: p.amount,
+  }));
+
+  return {
+    periodStart,
+    periodEnd,
+    invoicedExclVat: invoiceRows.reduce((sum, r) => sum + r.subtotal, 0),
+    invoicedInclVat: invoiceRows.reduce((sum, r) => sum + r.total, 0),
+    invoiceCount: invoiceRows.length,
+    paymentsReceived: paymentRows.reduce((sum, r) => sum + r.amount, 0),
+    paymentCount: paymentRows.length,
+    invoices: invoiceRows,
+    payments: paymentRows,
+  };
+}
+
+export interface BankReconciliationReportRow {
+  id: string;
+  date: string;
+  description: string;
+  reference: string;
+  amount: number;
+  status: "unmatched" | "matched" | "ignored";
+  matchedCustomerName: string | null;
+}
+
+export interface BankReconciliationReportResult {
+  periodStart: string;
+  periodEnd: string;
+  matchedCount: number;
+  matchedAmount: number;
+  unmatchedCount: number;
+  unmatchedAmount: number;
+  ignoredCount: number;
+  ignoredAmount: number;
+  rows: BankReconciliationReportRow[];
+}
+
+/**
+ * The live /bank-reconciliation screen is a worklist (all-time counts, no
+ * amounts, no date range) — this is the month-end version: how much moved
+ * through the bank feed in a given period and how much of it is still
+ * unreconciled, by value not just by count.
+ */
+export async function getBankReconciliationReport(
+  periodStart: string,
+  periodEnd: string
+): Promise<BankReconciliationReportResult> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: transactions } = await supabase
+    .from("bank_transactions")
+    .select("id, transaction_date, description, reference, amount, status, payments(customers(company_name))")
+    .gte("transaction_date", periodStart)
+    .lte("transaction_date", periodEnd)
+    .order("transaction_date", { ascending: true });
+
+  const rows: BankReconciliationReportRow[] = (transactions ?? []).map((t) => ({
+    id: t.id,
+    date: t.transaction_date,
+    description: t.description,
+    reference: t.reference ?? "",
+    amount: t.amount,
+    status: t.status,
+    matchedCustomerName: t.payments?.customers?.company_name ?? null,
+  }));
+
+  const byStatus = (status: BankReconciliationReportRow["status"]) => rows.filter((r) => r.status === status);
+  const sumAmount = (list: BankReconciliationReportRow[]) => list.reduce((sum, r) => sum + r.amount, 0);
+
+  const matched = byStatus("matched");
+  const unmatched = byStatus("unmatched");
+  const ignored = byStatus("ignored");
+
+  return {
+    periodStart,
+    periodEnd,
+    matchedCount: matched.length,
+    matchedAmount: sumAmount(matched),
+    unmatchedCount: unmatched.length,
+    unmatchedAmount: sumAmount(unmatched),
+    ignoredCount: ignored.length,
+    ignoredAmount: sumAmount(ignored),
+    rows,
+  };
+}

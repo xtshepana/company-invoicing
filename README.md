@@ -173,3 +173,9 @@ of fetching every outstanding invoice in the system, and PDF/email
 sending (the actually expensive, rate-limited step) runs with bounded
 concurrency separately from the cheap database-only steps — closing the
 one real timeout risk left from the earlier audit.
+
+**Sales & bank-reconciliation reports (done):** a Sales & Income Report
+(invoiced revenue vs. cash received for a period, with CSV export) and a
+Bank Reconciliation Report (matched/unmatched/ignored transaction value
+for a period, with CSV export) join the existing VAT and aging reports
+under `/reports`.
