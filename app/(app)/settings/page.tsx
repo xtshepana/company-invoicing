@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCurrentProfile } from "@/server/services/auth";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
+import { LogoUploadForm } from "@/components/settings/logo-upload-form";
 import { BankDetailsForm } from "@/components/settings/bank-details-form";
 import { InvoiceSettingsForm } from "@/components/settings/invoice-settings-form";
 
@@ -38,7 +39,8 @@ export default async function SettingsPage() {
             <CardHeader>
               <CardTitle>Company profile</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              <LogoUploadForm key={settings.logo_url} logoUrl={settings.logo_url} />
               <CompanyProfileForm key={settings.updated_at} settings={settings} />
             </CardContent>
           </Card>

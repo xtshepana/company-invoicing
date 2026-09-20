@@ -17,6 +17,12 @@ export const pdfStyles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     marginBottom: 4,
   },
+  logo: {
+    maxWidth: 140,
+    maxHeight: 50,
+    marginBottom: 8,
+    objectFit: "contain",
+  },
   small: {
     fontSize: 8,
     color: "#555555",
