@@ -189,3 +189,9 @@ the same per-module access checks as the existing totals.
 "Converted" once it's been turned into an invoice, instead of showing
 the raw underlying status (e.g. "Accepted") it had at the moment of
 conversion.
+
+**Split-payment and overpayment e2e coverage (done):** two new
+end-to-end tests cover scenarios the existing suite didn't — a single
+payment split across two invoices via auto-allocate, and an overpayment
+that correctly becomes customer credit rather than being rejected or
+floored.

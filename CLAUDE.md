@@ -529,6 +529,22 @@ instead of each page's own now-removed local `STATUS_LABELS`/
 `STATUS_VARIANTS` copies. Verified live: QUO-000001 (accepted, then
 converted) now reads "Converted" on both pages instead of "Accepted".
 
+**Split-payment and overpayment e2e coverage (done):** the build spec
+names both as critical scenarios ("SPLIT PAYMENT", "CREATE OVERPAYMENT
+→ CREATE CUSTOMER CREDIT"), and `core-workflow.spec.ts` only exercises
+a single full payment against a single invoice.
+`tests/e2e/payment-allocation.spec.ts` adds two real end-to-end tests
+against a production build and the real Supabase project: one payment
+split across two invoices via "Auto-allocate (oldest first)" marks both
+fully paid, and an overpayment fully pays the one invoice with the
+remainder correctly showing up as customer credit rather than being
+rejected or floored. Both actually run and pass, not just written —
+`npx playwright test tests/e2e/payment-allocation.spec.ts` (2 passed,
+~1 minute including build). Same uniquely-named-customer-per-run
+convention as `core-workflow.spec.ts` (`E2E Split <timestamp>`,
+`E2E Overpay <timestamp>`) so it never touches the curated "ABC
+Technologies" fixture.
+
 See the phase list in the original build spec — this closes out every
 module it named.
 
