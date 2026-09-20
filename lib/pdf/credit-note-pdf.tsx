@@ -1,4 +1,4 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
 import { pdfStyles as s } from "@/lib/pdf/styles";
 import { formatCurrency } from "@/lib/money";
 import type { CreditNoteWithItems } from "@/server/services/credit-notes";
@@ -23,6 +23,8 @@ export function CreditNotePdf({ creditNote, settings }: { creditNote: CreditNote
       <Page size="A4" style={s.page}>
         <View style={s.headerRow}>
           <View>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image, not an HTML img; no alt prop exists on this component */}
+            {settings.logo_url ? <Image style={s.logo} src={settings.logo_url} /> : null}
             <Text style={s.companyName}>{settings.company_name}</Text>
             {settings.trading_name ? <Text style={s.small}>Trading as {settings.trading_name}</Text> : null}
             <Text style={s.small}>{settings.address_physical}</Text>
