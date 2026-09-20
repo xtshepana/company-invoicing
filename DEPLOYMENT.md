@@ -97,3 +97,25 @@ etc.) — check this after the first scheduled run to confirm it's working.
 4. Invite a second user and confirm the invite email arrives (requires
    Supabase Auth email sending to be configured for your project — SMTP
    settings are under Supabase dashboard > Authentication > Email).
+
+## 9. Startup validation and error logging
+
+`instrumentation.ts`'s `register()` calls `getServerEnv()` once when the
+server starts, before it accepts any request — if a required variable
+from step 4 is missing (or empty), the server fails to start with a clear
+"Missing required environment variable: X" error instead of surfacing as
+a confusing 500 on whichever request happens to touch it first. If
+Hostinger reports the app failed to start, this is the first thing to
+check in its log viewer.
+
+Every uncaught server error (Server Components, Route Handlers, Server
+Actions) is also logged there as a structured `[server error]` line via
+`onRequestError` in the same file — there's no third-party observability
+provider wired up (Sentry, etc.); that's a decision for whoever runs this
+in production, not something assumed here.
+
+`next.config.ts` sets baseline security headers on every response
+(`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+`Permissions-Policy`, `Strict-Transport-Security`) — no custom
+Content-Security-Policy, since a strict CSP needs tuning against actual
+script/style sources and risks silently breaking the app.
