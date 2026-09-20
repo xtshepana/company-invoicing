@@ -74,3 +74,10 @@ export async function getCustomerById(id: string): Promise<Customer | null> {
   const { data } = await supabase.from("customers").select("*").eq("id", id).maybeSingle();
   return data;
 }
+
+/** For the dashboard — a count, not a fetch, so it doesn't grow with the customer list. */
+export async function getActiveCustomerCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count } = await supabase.from("customers").select("id", { count: "exact", head: true }).eq("is_active", true);
+  return count ?? 0;
+}

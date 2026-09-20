@@ -4,8 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getDashboardSummary } from "@/server/services/dashboard";
 import { requireUser, hasModuleAccess } from "@/server/services/auth";
-import { getInvoiceSummaryTotals } from "@/server/services/invoices";
+import { getInvoiceSummaryTotals, getInvoiceCountStats, getRecentInvoices } from "@/server/services/invoices";
 import { getReconciliationStats } from "@/server/services/bank-transactions";
+import { getActiveCustomerCount } from "@/server/services/customers";
+import { getPaidThisMonth, getRecentPayments } from "@/server/services/payments";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 
@@ -59,12 +61,20 @@ export default async function DashboardPage() {
   const profile = await requireUser();
   const canSeeInvoices = hasModuleAccess(profile, "invoices");
   const canSeeBanking = hasModuleAccess(profile, "banking");
-  const [summary, settings, invoiceTotals, reconciliationStats] = await Promise.all([
-    getDashboardSummary(),
-    getCompanySettings(),
-    canSeeInvoices ? getInvoiceSummaryTotals() : null,
-    canSeeBanking ? getReconciliationStats() : null,
-  ]);
+  const canSeeCustomers = hasModuleAccess(profile, "customers");
+  const canSeePayments = hasModuleAccess(profile, "payments");
+  const [summary, settings, invoiceTotals, reconciliationStats, customerCount, invoiceCounts, paidThisMonth, recentInvoices, recentPayments] =
+    await Promise.all([
+      getDashboardSummary(),
+      getCompanySettings(),
+      canSeeInvoices ? getInvoiceSummaryTotals() : null,
+      canSeeBanking ? getReconciliationStats() : null,
+      canSeeCustomers ? getActiveCustomerCount() : null,
+      canSeeInvoices ? getInvoiceCountStats() : null,
+      canSeePayments ? getPaidThisMonth() : null,
+      canSeeInvoices ? getRecentInvoices(5) : null,
+      canSeePayments ? getRecentPayments(5) : null,
+    ]);
   const currency = settings.default_currency;
 
   return (
@@ -135,6 +145,106 @@ export default async function DashboardPage() {
           </Card>
         )}
       </div>
+
+      {customerCount !== null || invoiceCounts !== null || paidThisMonth !== null ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {customerCount !== null ? (
+            <Link href="/customers">
+              <Card className="h-full transition-colors hover:bg-accent/50">
+                <CardHeader className="pb-2">
+                  <CardDescription>Customers</CardDescription>
+                  <CardTitle className="text-3xl">{customerCount}</CardTitle>
+                </CardHeader>
+              </Card>
+            </Link>
+          ) : null}
+          {invoiceCounts !== null ? (
+            <>
+              <Link href="/invoices">
+                <Card className="h-full transition-colors hover:bg-accent/50">
+                  <CardHeader className="pb-2">
+                    <CardDescription>Unpaid invoices</CardDescription>
+                    <CardTitle className="text-3xl">{invoiceCounts.unpaidCount}</CardTitle>
+                  </CardHeader>
+                </Card>
+              </Link>
+              <Link href="/invoices?status=overdue">
+                <Card className="h-full transition-colors hover:bg-accent/50">
+                  <CardHeader className="pb-2">
+                    <CardDescription>Overdue invoices</CardDescription>
+                    <CardTitle className="text-3xl">{invoiceCounts.overdueCount}</CardTitle>
+                  </CardHeader>
+                </Card>
+              </Link>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription>Invoiced this month</CardDescription>
+                  <CardTitle className="text-3xl">{formatCurrency(invoiceCounts.invoicedThisMonth, currency)}</CardTitle>
+                </CardHeader>
+              </Card>
+            </>
+          ) : null}
+          {paidThisMonth !== null ? (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Paid this month</CardDescription>
+                <CardTitle className="text-3xl">{formatCurrency(paidThisMonth, currency)}</CardTitle>
+              </CardHeader>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
+
+      {recentInvoices !== null || recentPayments !== null ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {recentInvoices !== null ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent invoices</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentInvoices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No invoices yet.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {recentInvoices.map((inv) => (
+                      <li key={inv.id} className="flex items-center justify-between py-2 text-sm">
+                        <Link href={`/invoices/${inv.id}`} className="hover:underline">
+                          {inv.invoiceNumber} · {inv.customerName}
+                        </Link>
+                        <span className="text-muted-foreground">{formatCurrency(inv.total, currency)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+          {recentPayments !== null ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent payments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentPayments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {recentPayments.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between py-2 text-sm">
+                        <Link href={`/payments/${p.id}`} className="hover:underline">
+                          {p.customerName}
+                        </Link>
+                        <span className="text-muted-foreground">{formatCurrency(p.amount, currency)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
 
       {profile.role === "owner_admin" ? (
         <Card>

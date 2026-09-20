@@ -180,6 +180,11 @@ Bank Reconciliation Report (matched/unmatched/ignored transaction value
 for a period, with CSV export) join the existing VAT and aging reports
 under `/reports`.
 
+**Dashboard metrics (done):** the dashboard now also shows active
+customer count, unpaid/overdue invoice counts, invoiced/paid this
+month, and recent-invoices/recent-payments lists — each gated behind
+the same per-module access checks as the existing totals.
+
 **"Converted" quote status (done):** a quote's status badge now reads
 "Converted" once it's been turned into an invoice, instead of showing
 the raw underlying status (e.g. "Accepted") it had at the moment of
