@@ -1,8 +1,10 @@
 # Deploying to Hostinger
 
-This covers what's needed for the app as it exists today (Phase 1:
-authentication, company settings, users, audit log). It will be extended as
-later phases add PDF generation, cron jobs, and email.
+The application is feature-complete: authentication, customers, products,
+quotes, invoices, payments, recurring invoices, bank reconciliation,
+credit notes, reports, PDF generation, transactional email, company
+settings, and the audit log are all built and verified. This guide covers
+everything needed to put it live.
 
 ## 1. Build the application
 
