@@ -46,7 +46,7 @@ export function ProductFormDialog({ product, defaultVatRate }: { product?: Produ
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={product ? <Button variant="ghost" size="icon" /> : <Button />}>
+      <DialogTrigger render={product ? <Button variant="ghost" size="icon" aria-label="Edit product" /> : <Button />}>
         {product ? <Pencil className="h-4 w-4" /> : (
           <>
             <Plus /> Add Item

@@ -140,3 +140,12 @@ unmatched transaction (by exact-amount balance and/or customer-name
 match against the description/reference), one click away from a
 pre-filled Record Payment form — closing the gap left by automatic
 matching, which only ever links to payments that already exist.
+
+**Performance/accessibility audit (done):** the auth check and company
+settings read are now deduplicated per request (React `cache()`), the
+dashboard's invoice totals are computed in SQL instead of reducing every
+invoice row in JS, and a partial index on `invoices.balance_due` backs
+the five places that filter on it. Icon-only controls that had no
+accessible name (mobile nav, account menu, remove-line-item,
+edit-product, list search) now do, and card-based pages have a real
+heading structure a screen reader can navigate by.

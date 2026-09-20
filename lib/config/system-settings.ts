@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SETTINGS_DEFAULTS } from "@/lib/config/defaults";
 import type { Tables } from "@/types/database";
@@ -11,8 +12,12 @@ export type CompanySettings = Tables<"company_settings">;
  * (VAT rate, invoice numbering, terms, etc.) must always be read through
  * here, never hard-coded in feature code. Falls back to lib/config/defaults
  * only if the row is somehow missing.
+ *
+ * Wrapped in React's cache() — the layout and nearly every page under it
+ * read this same singleton row, so this dedupes them to one query per
+ * request.
  */
-export async function getCompanySettings(): Promise<CompanySettings> {
+export const getCompanySettings = cache(async (): Promise<CompanySettings> => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("company_settings")
@@ -58,4 +63,4 @@ export async function getCompanySettings(): Promise<CompanySettings> {
   }
 
   return data;
-}
+});

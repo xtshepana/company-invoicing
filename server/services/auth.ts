@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 
@@ -23,8 +24,12 @@ export class ForbiddenError extends Error {
  * Returns the signed-in user's profile, or null. This is the single source
  * of truth for "who is the caller and what is their role" — never derive
  * role from client state, a cookie, or a JWT claim.
+ *
+ * Wrapped in React's cache() so the layout and every page it renders share
+ * one auth.getUser() + profiles lookup per request instead of repeating it
+ * at every call site — this function alone is called from ~80 places.
  */
-export async function getCurrentProfile(): Promise<Profile | null> {
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -39,7 +44,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     .maybeSingle();
 
   return profile ?? null;
-}
+});
 
 /** Throws UnauthenticatedError if not signed in, ForbiddenError if the account is deactivated. */
 export async function requireUser(): Promise<Profile> {

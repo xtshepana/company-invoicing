@@ -33,7 +33,7 @@ export function AppShell({
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="flex h-14 items-center gap-3 border-b bg-background px-4">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger render={<Button variant="ghost" size="icon" className="md:hidden" />}>
+            <SheetTrigger render={<Button variant="ghost" size="icon" className="md:hidden" aria-label="Open navigation menu" />}>
               <Menu className="h-5 w-5" />
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
