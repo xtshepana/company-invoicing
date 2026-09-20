@@ -195,6 +195,17 @@ function every module in the app relies on for authorization, now has
 direct unit test coverage — a staff member is denied a module unless
 it's explicitly granted, with no fallback to "allowed".
 
+**Bank-match confidence levels (done):** suggested bank-transaction
+matches now show a High/Medium/Low confidence badge instead of an ad
+hoc "Exact amount"/"Name match" label, computed from the same signals
+that were already there.
+
+**Split-payment and overpayment e2e coverage (done):** two new
+end-to-end tests cover scenarios the existing suite didn't — a single
+payment split across two invoices via auto-allocate, and an overpayment
+that correctly becomes customer credit rather than being rejected or
+floored.
+
 **Customer profile: quotes and credit notes (done):** a customer's
 profile page now also shows their recent quotes and recent credit
 notes, alongside the invoices/payments/balance it already showed.

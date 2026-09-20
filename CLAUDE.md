@@ -548,6 +548,47 @@ mocked at the top of the test file — neither is safe to execute outside
 a real Next.js request, and `hasModuleAccess()` itself never touches
 either.
 
+**Bank-match confidence levels (done):** the build spec explicitly asks
+for HIGH/MEDIUM/LOW confidence levels on suggested bank-transaction
+matches; the underlying signals (`amountMatches`/`daysApart` for
+payments, `amountMatches`/`nameMatches` for invoices) already existed
+but were never actually tiered or labeled in the UI. Extracted the
+tiering rules into pure functions —
+`computePaymentMatchConfidence(amountMatches, daysApart)` (amount is the
+primary signal, matching `auto_match_bank_transactions`'s own
+exact-amount-only rule: no amount match is always "low" regardless of
+date closeness; amount match within 3 days is "high", further out is
+"medium") and `computeInvoiceMatchConfidence(amountMatches, nameMatches)`
+(both signals is "high", exactly one is "medium", neither is "low",
+though that case can't actually occur given the existing candidate
+filter) — both in `server/services/bank-transactions.ts`, both directly
+unit-tested in `tests/unit/bank-match-confidence.test.ts` without
+needing a database. `match-transaction-dialog.tsx`'s per-candidate
+badges now show the tier ("High confidence"/"Medium confidence"/"Low
+confidence") instead of the previous ad hoc "Exact amount"/"Name match"
+badges. Not exercised live in a browser: there are currently zero
+`bank_transactions` rows in the live database (confirmed via the
+bank-reconciliation report and worklist both showing 0/0/0), so there
+was nothing to click through without fabricating disposable test data
+outside the established e2e-fixture convention — verified by direct
+unit tests of the pure tiering functions instead.
+
+**Split-payment and overpayment e2e coverage (done):** the build spec
+names both as critical scenarios ("SPLIT PAYMENT", "CREATE OVERPAYMENT
+→ CREATE CUSTOMER CREDIT"), and `core-workflow.spec.ts` only exercises
+a single full payment against a single invoice.
+`tests/e2e/payment-allocation.spec.ts` adds two real end-to-end tests
+against a production build and the real Supabase project: one payment
+split across two invoices via "Auto-allocate (oldest first)" marks both
+fully paid, and an overpayment fully pays the one invoice with the
+remainder correctly showing up as customer credit rather than being
+rejected or floored. Both actually run and pass, not just written —
+`npx playwright test tests/e2e/payment-allocation.spec.ts` (2 passed,
+~1 minute including build). Same uniquely-named-customer-per-run
+convention as `core-workflow.spec.ts` (`E2E Split <timestamp>`,
+`E2E Overpay <timestamp>`) so it never touches the curated "ABC
+Technologies" fixture.
+
 **Customer profile: quotes and credit notes (done):** the build spec
 explicitly names quotes and credit notes among what a customer profile
 must display, alongside invoices/payments/outstanding balance/statement
