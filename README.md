@@ -215,3 +215,9 @@ test actually generates a recurring invoice via the daily cron, runs
 the cron a second time, and confirms no duplicate was created —
 closing the last of the critical scenarios the build spec names
 explicitly.
+
+**Staff-permission e2e coverage (done):** a second, genuinely
+restricted e2e login (staff role, only the Customers module granted)
+confirms the real page-level redirects work — reachable at
+`/customers`, redirected to `/dashboard` from every accounting/admin
+page it wasn't granted.

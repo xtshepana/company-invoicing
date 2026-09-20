@@ -110,17 +110,34 @@ look hung rather than slow, even past a generous per-test timeout. This
 costs a few minutes at suite start but every request is then as fast as
 production.
 
-Requires a dedicated Supabase auth user: run
-`node scripts/create-e2e-user.mjs` once (reads `E2E_USER_EMAIL`/
-`E2E_USER_PASSWORD` from `.env.local`, creating both if unset — generate a
-real password rather than committing a placeholder), and promote its
-profile to `owner_admin` once via direct SQL (`alter table profiles
-disable trigger profiles_prevent_self_privilege_escalation; update
-profiles set role = 'owner_admin', is_active = true where id = '<id>';
-alter table profiles enable trigger ...`) — the app's own role-change path
-always requires a real admin's authenticated session, which a standalone
-script doesn't have, so this one-time bootstrap step can't go through the
-normal UI/action path. Never point this account at a real staff member.
+Requires two dedicated Supabase auth users, both bootstrapped by
+`scripts/create-e2e-user.mjs` (takes an optional prefix argument
+selecting which `E2E_<PREFIX>_EMAIL`/`_PASSWORD` pair to read from
+`.env.local`, creating the account if unset — generate real passwords
+rather than committing placeholders). Never point either account at a
+real staff member.
+
+- **Owner/admin** (`node scripts/create-e2e-user.mjs`, reads
+  `E2E_USER_EMAIL`/`E2E_USER_PASSWORD`): needs its profile promoted to
+  `owner_admin` once via direct SQL (`alter table profiles disable
+  trigger profiles_prevent_self_privilege_escalation; update profiles
+  set role = 'owner_admin', is_active = true where id = '<id>'; alter
+  table profiles enable trigger ...`) — the app's own role-change path
+  always requires a real admin's authenticated session, which a
+  standalone script doesn't have, so this one-time bootstrap step can't
+  go through the normal UI/action path. Used by every spec except
+  `staff-permissions.spec.ts` (the `chromium` Playwright project,
+  `playwright/.auth/user.json`).
+- **Restricted staff** (`node scripts/create-e2e-user.mjs STAFF`, reads
+  `E2E_STAFF_EMAIL`/`E2E_STAFF_PASSWORD`): stays at the default `staff`
+  role a new profile gets automatically, but needs
+  `staff_module_permissions` set to exactly `{"customers": true}` via
+  the same disable-trigger/update/re-enable dance (the trigger blocks
+  permission changes from a service-role script the same way it blocks
+  self-escalation). Used only by `staff-permissions.spec.ts` (the
+  `chromium-staff` project, `playwright/.auth/staff.json`), which
+  verifies a real restricted login is actually redirected away from
+  modules it wasn't granted.
 
 Every spec creates its own uniquely-named customer(s) (`E2E Customer
 <timestamp>`, etc.) rather than touching the curated "ABC Technologies"
@@ -628,6 +645,35 @@ recurring invoice's detail page staying at exactly one row after both
 runs. Actually run, not just written —
 `npx playwright test tests/e2e/recurring-invoices.spec.ts` (3 passed,
 ~1 minute including build).
+
+**Staff-permission e2e coverage (done):** the build spec names this
+explicitly under Testing: "Verify Staff cannot perform restricted
+accounting/admin actions." `tests/unit/permissions.test.ts` already
+covers `hasModuleAccess()` directly, but that only proves the function
+itself is correct — it says nothing about whether every page actually
+calls it, which is what this closes. Added a second, genuinely
+restricted e2e account: `scripts/create-e2e-user.mjs` now takes an
+optional prefix argument (`node scripts/create-e2e-user.mjs STAFF` →
+reads `E2E_STAFF_EMAIL`/`E2E_STAFF_PASSWORD`) instead of duplicating the
+whole script for one more account. Its profile has
+`staff_module_permissions = {"customers": true}` and nothing else — set
+via the same disable-trigger/update/re-enable-trigger dance already
+documented for the owner_admin account, since
+`profiles_prevent_self_privilege_escalation` blocks a service-role
+script from changing permissions the same way it blocks self-escalation
+(no `auth.uid()` in a standalone script). `playwright.config.ts` gained
+a `chromium-staff` project (its own `auth-staff.setup.ts` and
+`playwright/.auth/staff.json` storage state) scoped only to
+`staff-permissions.spec.ts` via `testMatch`, so every other spec keeps
+running as the owner_admin account unaffected.
+`staff-permissions.spec.ts` confirms this restricted account can reach
+`/customers` (the one module it was granted) but gets redirected to
+`/dashboard` from `/invoices`, `/payments`, `/reports` (module-gated)
+and `/users`, `/settings`, `/audit-log` (owner_admin-only) — the exact
+real redirects, not the underlying logic a second time. Actually run
+against a production build and the real Supabase project:
+`npx playwright test tests/e2e/staff-permissions.spec.ts` (9 passed —
+2 setup logins + 7 assertions).
 
 See the phase list in the original build spec — this closes out every
 module it named.
