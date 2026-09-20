@@ -158,3 +158,11 @@ same fix, same reasoning as the dashboard's invoice totals.
 **Remaining accessibility polish (done):** every main list table now has
 a visually-hidden caption describing what it lists, and column headers
 get `scope="col"` by default across the whole app.
+
+**Deployment hardening (done):** the server now fails fast at boot with
+a clear error if a required environment variable is missing, instead of
+surfacing as a confusing 500 on the first request that needs it. Uncaught
+server errors are logged with structured context, and every response
+carries baseline security headers (`X-Frame-Options`,
+`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`,
+`Strict-Transport-Security`). See `DEPLOYMENT.md` step 9.

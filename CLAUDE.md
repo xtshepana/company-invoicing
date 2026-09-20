@@ -424,6 +424,28 @@ covering every column header app-wide from one place rather than
 the audit, not a confirmed one, and fixing it would mean guessing at a
 visual change rather than measuring against the actual theme colors.
 
+**Deployment hardening (done):** `instrumentation.ts`'s `register()`
+calls `getServerEnv()` once at server boot (Node.js runtime only —
+`proxy.ts` is the only edge-runtime code in this app and only reads
+public env vars) so a misconfigured production deploy fails fast with a
+clear error instead of surfacing as a confusing 500 on whichever request
+happens to touch the missing var first — confirmed live: unsetting
+`CRON_SECRET` makes `next start` fail immediately with "Missing required
+environment variable: CRON_SECRET", and a normal boot serves requests
+with no such error. The same file's `onRequestError` logs every uncaught
+server error as a structured `console.error` — this app has no
+third-party observability provider (Sentry etc.) and adding one is a
+decision for whoever runs this in production, not something to wire up
+silently. `next.config.ts` sets baseline security headers on every
+response (`X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) —
+confirmed live via `curl -I` against a production build. Deliberately no
+custom Content-Security-Policy (needs tuning against actual asset
+sources, risks silently breaking the app) and no automated backup
+cadence (Phase 9's export is intentionally export-only/on-demand, not a
+scheduled job writing somewhere — there's no storage destination decided
+for that, and inventing one wasn't asked for).
+
 See the phase list in the original build spec — this closes out every
 module it named.
 
