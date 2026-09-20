@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Placeholder values only — typecheck/lint/test/build never need to
+    # actually reach Supabase, they just need getServerEnv()'s required()
+    # checks to see non-empty strings. Never put real secrets here; if e2e
+    # tests are ever added to this workflow, use repository Secrets for
+    # SUPABASE_SERVICE_ROLE_KEY and the dedicated E2E_USER_* credentials
+    # instead of committing them.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      SUPABASE_SERVICE_ROLE_KEY: placeholder
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      CRON_SECRET: placeholder
+      EMAIL_FROM: "Company Invoicing <invoices@example.com>"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build

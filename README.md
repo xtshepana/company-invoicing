@@ -1,5 +1,7 @@
 # Company Invoicing System
 
+[![CI](https://github.com/xtshepana/company-invoicing/actions/workflows/ci.yml/badge.svg)](https://github.com/xtshepana/company-invoicing/actions/workflows/ci.yml)
+
 A private, single-company invoicing, payments, and bank reconciliation
 application. This is **not** a SaaS product — there is one company profile,
 and authorized staff sign in with roles (Owner/Admin, Accountant, Staff).
