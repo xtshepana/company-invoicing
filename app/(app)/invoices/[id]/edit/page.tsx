@@ -6,6 +6,7 @@ import { listAllActiveCustomers } from "@/server/services/customers";
 import { listAllActiveProducts } from "@/server/services/products";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { InvoiceForm } from "@/components/documents/invoice-form";
+import { BackButton } from "@/components/shared/back-button";
 
 export const metadata: Metadata = { title: "Edit Invoice" };
 
@@ -33,6 +34,7 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
 
   return (
     <div className="max-w-4xl space-y-6">
+      <BackButton fallbackHref={`/invoices/${id}`} />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Edit Invoice</h1>
         <p className="text-muted-foreground">{invoice.invoice_number}</p>

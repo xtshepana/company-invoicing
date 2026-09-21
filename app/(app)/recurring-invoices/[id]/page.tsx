@@ -10,6 +10,7 @@ import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 import { RECURRING_FREQUENCY_LABELS } from "@/lib/validations/recurring-invoices";
 import { RecurringInvoiceActionsBar } from "@/components/documents/recurring-invoice-actions-bar";
+import { BackButton } from "@/components/shared/back-button";
 
 interface RecurringInvoiceDetailPageProps {
   params: Promise<{ id: string }>;
@@ -51,6 +52,7 @@ export default async function RecurringInvoiceDetailPage({ params }: RecurringIn
 
   return (
     <div className="space-y-6">
+      <BackButton fallbackHref="/recurring-invoices" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">

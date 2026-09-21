@@ -8,6 +8,7 @@ import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
 import { getCustomerStatement } from "@/server/services/statements";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
+import { BackButton } from "@/components/shared/back-button";
 
 interface StatementPageProps {
   params: Promise<{ id: string }>;
@@ -28,6 +29,9 @@ export default async function CustomerStatementPage({ params }: StatementPagePro
 
   return (
     <div className="space-y-6">
+      <div className="print:hidden">
+        <BackButton fallbackHref={`/customers/${id}`} />
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Statement — {statement.customer.company_name}</h1>

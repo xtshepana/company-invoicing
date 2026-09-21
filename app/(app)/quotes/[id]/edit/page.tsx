@@ -6,6 +6,7 @@ import { listAllActiveCustomers } from "@/server/services/customers";
 import { listAllActiveProducts } from "@/server/services/products";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { QuoteForm } from "@/components/documents/quote-form";
+import { BackButton } from "@/components/shared/back-button";
 
 export const metadata: Metadata = { title: "Edit Quote" };
 
@@ -31,6 +32,7 @@ export default async function EditQuotePage({ params }: EditQuotePageProps) {
 
   return (
     <div className="max-w-4xl space-y-6">
+      <BackButton fallbackHref={`/quotes/${id}`} />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Edit Quote</h1>
         <p className="text-muted-foreground">{quote.quote_number}</p>

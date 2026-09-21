@@ -18,6 +18,7 @@ import { ArchiveCustomerButton } from "@/components/customers/archive-customer-b
 import { PAYMENT_METHOD_LABELS } from "@/lib/validations/payments";
 import { getQuoteDisplayStatus } from "@/lib/validations/quotes";
 import { CREDIT_NOTE_STATUS_LABELS } from "@/lib/validations/credit-notes";
+import { BackButton } from "@/components/shared/back-button";
 
 interface CustomerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -68,6 +69,7 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
 
   return (
     <div className="space-y-6">
+      <BackButton fallbackHref="/customers" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">

@@ -9,6 +9,7 @@ import { getPaymentById } from "@/server/services/payments";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 import { PAYMENT_METHOD_LABELS } from "@/lib/validations/payments";
+import { BackButton } from "@/components/shared/back-button";
 
 interface PaymentDetailPageProps {
   params: Promise<{ id: string }>;
@@ -38,6 +39,7 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
 
   return (
     <div className="space-y-6">
+      <BackButton fallbackHref="/payments" />
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">
