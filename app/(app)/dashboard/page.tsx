@@ -14,6 +14,7 @@ import {
 import { getReconciliationStats } from "@/server/services/bank-transactions";
 import { getActiveCustomerCount } from "@/server/services/customers";
 import { getPaidThisMonth, getRecentPayments, getMonthlyPaymentTotals } from "@/server/services/payments";
+import { getExpensesThisMonth } from "@/server/services/expenses";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
@@ -88,6 +89,13 @@ const ACTION_LABELS: Record<string, string> = {
   "credit_note.updated": "updated a credit note",
   "credit_note.issued": "issued a credit note",
   "credit_note.cancelled": "cancelled a credit note",
+  "supplier.created": "added a supplier",
+  "supplier.updated": "updated a supplier",
+  "supplier.archived": "archived a supplier",
+  "supplier.reactivated": "reactivated a supplier",
+  "expense.created": "logged an expense",
+  "expense.updated": "updated an expense",
+  "expense.deleted": "deleted an expense",
   "backup.exported": "exported a full data backup",
 };
 
@@ -97,6 +105,7 @@ export default async function DashboardPage() {
   const canSeeBanking = hasModuleAccess(profile, "banking");
   const canSeeCustomers = hasModuleAccess(profile, "customers");
   const canSeePayments = hasModuleAccess(profile, "payments");
+  const canSeeSuppliers = hasModuleAccess(profile, "suppliers");
   const [
     summary,
     settings,
@@ -110,6 +119,7 @@ export default async function DashboardPage() {
     monthlyInvoiced,
     monthlyPaid,
     statusBreakdown,
+    expensesThisMonth,
   ] = await Promise.all([
     getDashboardSummary(),
     getCompanySettings(),
@@ -123,6 +133,7 @@ export default async function DashboardPage() {
     canSeeInvoices ? getMonthlyInvoicedTotals(REVENUE_CHART_MONTHS) : null,
     canSeePayments ? getMonthlyPaymentTotals(REVENUE_CHART_MONTHS) : null,
     canSeeInvoices ? getInvoiceStatusBreakdown() : null,
+    canSeeSuppliers ? getExpensesThisMonth() : null,
   ]);
   const currency = settings.default_currency;
   const revenueSeries =
@@ -231,7 +242,7 @@ export default async function DashboardPage() {
         </div>
       ) : null}
 
-      {customerCount !== null || invoiceCounts !== null || paidThisMonth !== null ? (
+      {customerCount !== null || invoiceCounts !== null || paidThisMonth !== null || expensesThisMonth !== null ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {customerCount !== null ? (
             <Link href="/customers">
@@ -276,6 +287,16 @@ export default async function DashboardPage() {
                 <CardTitle className="text-3xl">{formatCurrency(paidThisMonth, currency)}</CardTitle>
               </CardHeader>
             </Card>
+          ) : null}
+          {expensesThisMonth !== null ? (
+            <Link href="/expenses">
+              <Card className="h-full transition-colors hover:bg-accent/50">
+                <CardHeader className="pb-2">
+                  <CardDescription>Expenses this month</CardDescription>
+                  <CardTitle className="text-3xl">{formatCurrency(expensesThisMonth, currency)}</CardTitle>
+                </CardHeader>
+              </Card>
+            </Link>
           ) : null}
         </div>
       ) : null}

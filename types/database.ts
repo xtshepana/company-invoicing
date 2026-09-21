@@ -366,6 +366,89 @@ export type Database = {
           },
         ];
       };
+      suppliers: {
+        Row: {
+          address_physical: string;
+          company_name: string;
+          contact_person: string;
+          created_at: string;
+          created_by: string | null;
+          email: string;
+          id: string;
+          is_active: boolean;
+          notes: string;
+          phone: string;
+          updated_at: string;
+          vat_number: string;
+        };
+        Insert: {
+          address_physical?: string;
+          company_name: string;
+          contact_person?: string;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string;
+          id?: string;
+          is_active?: boolean;
+          notes?: string;
+          phone?: string;
+          updated_at?: string;
+          vat_number?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["suppliers"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      expenses: {
+        Row: {
+          amount: number;
+          category: string;
+          created_at: string;
+          created_by: string | null;
+          description: string;
+          expense_date: string;
+          id: string;
+          notes: string;
+          supplier_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          amount: number;
+          category?: string;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          expense_date?: string;
+          id?: string;
+          notes?: string;
+          supplier_id?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["expenses"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "expenses_supplier_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "suppliers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "expenses_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       customer_credits: {
         Row: {
           amount: number;

@@ -13,6 +13,7 @@ import {
   Landmark,
   FileMinus,
   BarChart3,
+  Truck,
 } from "lucide-react";
 import type { StaffModule } from "@/server/services/auth";
 
@@ -39,6 +40,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/recurring-invoices", label: "Recurring Invoices", icon: Repeat, module: "recurring_invoices" },
   { href: "/payments", label: "Payments", icon: Banknote, module: "payments" },
   { href: "/bank-reconciliation", label: "Bank Reconciliation", icon: Landmark, module: "banking" },
+  { href: "/suppliers", label: "Suppliers", icon: Truck, module: "suppliers" },
+  { href: "/expenses", label: "Expenses", icon: Receipt, module: "suppliers" },
   { href: "/reports", label: "Reports", icon: BarChart3, module: "reports" },
   { href: "/settings", label: "Settings", icon: Settings, adminOnly: true },
   { href: "/users", label: "Users", icon: Users, adminOnly: true },
