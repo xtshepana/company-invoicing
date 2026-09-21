@@ -17,6 +17,7 @@ export const STAFF_MODULES = [
   "payments",
   "banking",
   "reports",
+  "suppliers",
 ] as const;
 
 export const inviteUserSchema = z.object({

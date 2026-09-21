@@ -14,6 +14,7 @@ const MODULE_LABELS: Record<(typeof STAFF_MODULES)[number], string> = {
   payments: "Payments",
   banking: "Banking",
   reports: "Reports",
+  suppliers: "Suppliers & Expenses",
 };
 
 export function ModulePermissionCheckboxes({

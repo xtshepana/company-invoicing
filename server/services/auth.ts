@@ -82,7 +82,8 @@ export type StaffModule =
   | "recurring_invoices"
   | "payments"
   | "banking"
-  | "reports";
+  | "reports"
+  | "suppliers";
 
 /** Pure check, safe to use for a page-level redirect (no throw). */
 export function hasModuleAccess(profile: Profile, module: StaffModule): boolean {

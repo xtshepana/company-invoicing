@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { customerSchema } from "@/lib/validations/customers";
 import { productSchema } from "@/lib/validations/products";
+import { supplierSchema, expenseSchema } from "@/lib/validations/suppliers";
 
 describe("customerSchema", () => {
   it("accepts a minimal valid customer", () => {
@@ -85,5 +86,63 @@ describe("productSchema", () => {
       vat_rate: 15,
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("supplierSchema", () => {
+  it("accepts a minimal valid supplier", () => {
+    const result = supplierSchema.safeParse({ company_name: "Acme Supplies" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty company name", () => {
+    const result = supplierSchema.safeParse({ company_name: "  " });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid email", () => {
+    const result = supplierSchema.safeParse({ company_name: "Acme Supplies", email: "not-an-email" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("expenseSchema", () => {
+  it("accepts a minimal valid expense with no supplier", () => {
+    const result = expenseSchema.safeParse({
+      supplier_id: "",
+      expense_date: "2026-01-15",
+      description: "Office rent",
+      amount: 5000,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.supplier_id).toBe("");
+  });
+
+  it("rejects a negative amount", () => {
+    const result = expenseSchema.safeParse({
+      expense_date: "2026-01-15",
+      description: "Office rent",
+      amount: -100,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing description", () => {
+    const result = expenseSchema.safeParse({
+      expense_date: "2026-01-15",
+      description: "",
+      amount: 100,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a non-uuid supplier_id", () => {
+    const result = expenseSchema.safeParse({
+      supplier_id: "not-a-uuid",
+      expense_date: "2026-01-15",
+      description: "Office rent",
+      amount: 100,
+    });
+    expect(result.success).toBe(false);
   });
 });
