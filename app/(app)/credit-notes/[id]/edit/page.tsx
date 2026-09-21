@@ -6,6 +6,7 @@ import { listAllActiveCustomers } from "@/server/services/customers";
 import { listAllActiveProducts } from "@/server/services/products";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { CreditNoteForm } from "@/components/documents/credit-note-form";
+import { BackButton } from "@/components/shared/back-button";
 
 export const metadata: Metadata = { title: "Edit Credit Note" };
 
@@ -32,6 +33,7 @@ export default async function EditCreditNotePage({ params }: EditCreditNotePageP
 
   return (
     <div className="max-w-4xl space-y-6">
+      <BackButton fallbackHref={`/credit-notes/${id}`} />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Edit Credit Note</h1>
         <p className="text-muted-foreground">{creditNote.credit_note_number}</p>

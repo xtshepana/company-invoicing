@@ -5,6 +5,7 @@ import { listAllActiveCustomers } from "@/server/services/customers";
 import { getCustomerOutstandingInvoices } from "@/server/services/payments";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { PaymentForm } from "@/components/payments/payment-form";
+import { BackButton } from "@/components/shared/back-button";
 
 export const metadata: Metadata = { title: "Record Payment" };
 
@@ -35,6 +36,7 @@ export default async function NewPaymentPage({ searchParams }: NewPaymentPagePro
 
   return (
     <div className="max-w-3xl space-y-6">
+      <BackButton fallbackHref={bank_transaction_id ? "/bank-reconciliation" : "/payments"} />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Record Payment</h1>
         <p className="text-muted-foreground">

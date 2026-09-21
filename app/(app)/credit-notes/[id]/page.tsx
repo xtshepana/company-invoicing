@@ -10,6 +10,7 @@ import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 import { CreditNoteActionsBar } from "@/components/credit-notes/credit-note-actions-bar";
 import { CREDIT_NOTE_STATUS_LABELS } from "@/lib/validations/credit-notes";
+import { BackButton } from "@/components/shared/back-button";
 
 interface CreditNoteDetailPageProps {
   params: Promise<{ id: string }>;
@@ -41,6 +42,7 @@ export default async function CreditNoteDetailPage({ params }: CreditNoteDetailP
 
   return (
     <div className="space-y-6">
+      <BackButton fallbackHref="/credit-notes" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">

@@ -13,6 +13,7 @@ import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 import { InvoiceActionsBar } from "@/components/documents/invoice-actions-bar";
 import { ApplyCreditDialog } from "@/components/payments/apply-credit-dialog";
+import { BackButton } from "@/components/shared/back-button";
 
 interface InvoiceDetailPageProps {
   params: Promise<{ id: string }>;
@@ -66,6 +67,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
   return (
     <div className="space-y-6">
+      <BackButton fallbackHref="/invoices" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">

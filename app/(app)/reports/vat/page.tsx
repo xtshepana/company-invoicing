@@ -10,6 +10,7 @@ import { getVatReport } from "@/server/services/reports";
 import { vatReportSearchSchema } from "@/lib/validations/reports";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
+import { BackButton } from "@/components/shared/back-button";
 
 export const metadata: Metadata = { title: "VAT Report" };
 
@@ -28,6 +29,7 @@ export default async function VatReportPage({ searchParams }: VatReportPageProps
 
   return (
     <div className="space-y-6">
+      <BackButton fallbackHref="/reports" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">VAT Report</h1>

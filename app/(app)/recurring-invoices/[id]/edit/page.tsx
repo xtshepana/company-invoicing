@@ -6,6 +6,7 @@ import { listAllActiveCustomers } from "@/server/services/customers";
 import { listAllActiveProducts } from "@/server/services/products";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { RecurringInvoiceForm } from "@/components/documents/recurring-invoice-form";
+import { BackButton } from "@/components/shared/back-button";
 
 export const metadata: Metadata = { title: "Edit Recurring Invoice" };
 
@@ -30,6 +31,7 @@ export default async function EditRecurringInvoicePage({ params }: EditRecurring
 
   return (
     <div className="max-w-4xl space-y-6">
+      <BackButton fallbackHref={`/recurring-invoices/${id}`} />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Edit Recurring Invoice</h1>
         <p className="text-muted-foreground">{recurring.description}</p>

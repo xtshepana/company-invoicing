@@ -5,6 +5,7 @@ import { listAllActiveCustomers } from "@/server/services/customers";
 import { listAllActiveProducts } from "@/server/services/products";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { InvoiceForm } from "@/components/documents/invoice-form";
+import { BackButton } from "@/components/shared/back-button";
 
 export const metadata: Metadata = { title: "New Invoice" };
 
@@ -26,6 +27,7 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
 
   return (
     <div className="max-w-4xl space-y-6">
+      <BackButton fallbackHref="/invoices" />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">New Invoice</h1>
         <p className="text-muted-foreground">Bill a customer.</p>

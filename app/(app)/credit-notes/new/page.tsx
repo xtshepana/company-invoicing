@@ -6,6 +6,7 @@ import { listAllActiveProducts } from "@/server/services/products";
 import { getCustomerInvoicesForCreditNote } from "@/server/services/credit-notes";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { CreditNoteForm } from "@/components/documents/credit-note-form";
+import { BackButton } from "@/components/shared/back-button";
 
 export const metadata: Metadata = { title: "New Credit Note" };
 
@@ -28,6 +29,7 @@ export default async function NewCreditNotePage({ searchParams }: NewCreditNoteP
 
   return (
     <div className="max-w-4xl space-y-6">
+      <BackButton fallbackHref="/credit-notes" />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">New Credit Note</h1>
         <p className="text-muted-foreground">Issue a credit to a customer&apos;s account.</p>
