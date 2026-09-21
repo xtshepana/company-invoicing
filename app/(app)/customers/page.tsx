@@ -50,7 +50,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
 
       <ListFilters
         searchValue={params.q}
-        searchPlaceholder="Search by name, email, phone, reference…"
+        searchPlaceholder="Search by name, email, phone, account number…"
         selects={[
           {
             param: "status",

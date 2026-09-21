@@ -39,6 +39,9 @@ export function StatementPdf({ statement, settings }: { statement: CustomerState
         <View style={s.billToBlock}>
           <Text style={s.sectionTitle}>Customer</Text>
           <Text style={s.billToName}>{statement.customer.company_name}</Text>
+          {statement.customer.customer_reference ? (
+            <Text style={s.small}>Account No: {statement.customer.customer_reference}</Text>
+          ) : null}
           {statement.customer.address_physical ? <Text style={s.small}>{statement.customer.address_physical}</Text> : null}
         </View>
 
