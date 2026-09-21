@@ -58,6 +58,7 @@ export function InvoicePdf({ invoice, settings }: { invoice: InvoiceWithItems; s
         <View style={s.billToBlock}>
           <Text style={s.sectionTitle}>Bill To</Text>
           <Text style={s.billToName}>{customer?.company_name}</Text>
+          {customer?.customer_reference ? <Text style={s.small}>Account No: {customer.customer_reference}</Text> : null}
           {customer?.contact_person ? <Text style={s.small}>{customer.contact_person}</Text> : null}
           {customer?.address_physical ? <Text style={s.small}>{customer.address_physical}</Text> : null}
           {customer?.email ? <Text style={s.small}>{customer.email}</Text> : null}

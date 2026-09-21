@@ -65,6 +65,7 @@ export type Database = {
           brand_color: string | null;
           company_name: string;
           credit_note_next_number: number;
+          customer_next_number: number;
           credit_note_prefix: string;
           default_currency: string;
           default_invoice_footer: string;
@@ -1171,6 +1172,7 @@ export type Database = {
       has_module_access: { Args: { module: string }; Returns: boolean };
       is_active_staff: { Args: Record<string, never>; Returns: boolean };
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      next_customer_account_number: { Args: { p_company_name: string }; Returns: string };
       next_invoice_number: { Args: Record<string, never>; Returns: string };
       next_quote_number: { Args: Record<string, never>; Returns: string };
       update_invoice: {

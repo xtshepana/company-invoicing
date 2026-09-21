@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,15 +54,20 @@ export function CustomerForm({ customer }: { customer?: Customer }) {
             <Input id="contact_person" name="contact_person" defaultValue={customer?.contact_person} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="customer_reference">Customer reference</Label>
-            <Input
-              id="customer_reference"
-              name="customer_reference"
-              defaultValue={customer?.customer_reference}
-              placeholder="Leave blank to auto-generate"
-            />
+            <Label htmlFor="customer_reference">Account number</Label>
+            <div className="relative">
+              <Input
+                id="customer_reference"
+                name="customer_reference"
+                defaultValue={customer?.customer_reference}
+                placeholder="Generated automatically on save"
+                readOnly
+                className="cursor-not-allowed bg-muted pr-8 text-muted-foreground"
+              />
+              <Lock className="absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            </div>
             <p className="text-xs text-muted-foreground">
-              Leave blank to auto-generate a unique one from the company name.
+              System-generated from the company name — cannot be edited.
             </p>
           </div>
           <div className="space-y-2">
