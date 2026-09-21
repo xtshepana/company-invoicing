@@ -51,6 +51,7 @@ export const getCompanySettings = cache(async (): Promise<CompanySettings> => {
       quote_next_number: 1,
       credit_note_prefix: SETTINGS_DEFAULTS.creditNotePrefix,
       credit_note_next_number: 1,
+      customer_next_number: 1,
       default_payment_terms_days: SETTINGS_DEFAULTS.defaultPaymentTermsDays,
       default_vat_rate: SETTINGS_DEFAULTS.defaultVatRate,
       default_prices_include_vat: SETTINGS_DEFAULTS.defaultPricesIncludeVat,

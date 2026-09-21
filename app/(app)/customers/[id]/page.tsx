@@ -80,7 +80,7 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
           </div>
           <p className="text-muted-foreground">
             {CUSTOMER_TYPE_LABELS[customer.customer_type]}
-            {customer.customer_reference ? ` · Ref ${customer.customer_reference}` : ""}
+            {customer.customer_reference ? ` · Account No ${customer.customer_reference}` : ""}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

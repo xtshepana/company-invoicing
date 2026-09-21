@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireModuleAccess } from "@/server/services/auth";
 import { recordAuditLog } from "@/server/services/audit";
-import { generateUniqueCustomerReference } from "@/server/services/customers";
+import { generateCustomerAccountNumber } from "@/server/services/customers";
 import { customerSchema } from "@/lib/validations/customers";
 import type { ActionResult } from "@/server/actions/auth-actions";
 import type { Json, TablesInsert } from "@/types/database";
@@ -23,10 +23,10 @@ function toRow(data: ReturnType<typeof customerSchema.parse>): TablesInsert<"cus
   };
 }
 
-/** 23505 = unique_violation. Only customer_reference has a unique index on this table, so any hit here is that one. */
+/** 23505 = unique_violation. Only customer_reference (the account number) has a unique index on this table. */
 function customerSaveErrorMessage(error: { code?: string }): string {
   if (error.code === "23505") {
-    return "That customer reference is already in use. Leave it blank to auto-generate one, or choose a different value.";
+    return "That account number is already in use. Please try saving again.";
   }
   return "Unable to save this customer. Please try again.";
 }
@@ -41,7 +41,7 @@ export async function createCustomerAction(_prev: ActionResult, formData: FormDa
 
   const supabase = await createSupabaseServerClient();
   const customerReference =
-    parsed.data.customer_reference || (await generateUniqueCustomerReference(supabase, parsed.data.company_name));
+    parsed.data.customer_reference || (await generateCustomerAccountNumber(supabase, parsed.data.company_name));
 
   const { data: inserted, error } = await supabase
     .from("customers")
@@ -80,7 +80,7 @@ export async function updateCustomerAction(_prev: ActionResult, formData: FormDa
   const { data: before } = await supabase.from("customers").select("*").eq("id", id).single();
 
   const customerReference =
-    parsed.data.customer_reference || (await generateUniqueCustomerReference(supabase, parsed.data.company_name));
+    parsed.data.customer_reference || (await generateCustomerAccountNumber(supabase, parsed.data.company_name));
 
   const { error } = await supabase
     .from("customers")
