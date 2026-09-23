@@ -44,7 +44,12 @@ export async function createQuoteAction(_prev: ActionResult, formData: FormData)
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const { lines, totals } = computeDocumentTotals(parsed.data.line_items, parsed.data.prices_include_vat);
+  const settings = await getCompanySettings();
+  const { lines, totals } = computeDocumentTotals(
+    parsed.data.line_items,
+    parsed.data.prices_include_vat,
+    settings.vat_registered
+  );
   const supabase = await createSupabaseServerClient();
 
   const { data: quoteId, error } = await supabase.rpc("create_quote", {
@@ -89,7 +94,12 @@ export async function updateQuoteAction(_prev: ActionResult, formData: FormData)
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const { lines, totals } = computeDocumentTotals(parsed.data.line_items, parsed.data.prices_include_vat);
+  const settings = await getCompanySettings();
+  const { lines, totals } = computeDocumentTotals(
+    parsed.data.line_items,
+    parsed.data.prices_include_vat,
+    settings.vat_registered
+  );
   const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.rpc("update_quote", {

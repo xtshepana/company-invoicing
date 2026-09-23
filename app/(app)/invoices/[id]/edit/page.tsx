@@ -47,6 +47,7 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
         defaultCurrency={settings.default_currency}
         defaultTerms={settings.default_invoice_footer}
         defaultPaymentTermsDays={settings.default_payment_terms_days}
+        vatRegistered={settings.vat_registered}
       />
     </div>
   );

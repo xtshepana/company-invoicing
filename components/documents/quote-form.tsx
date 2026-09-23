@@ -23,6 +23,7 @@ export function QuoteForm({
   defaultCurrency,
   defaultTerms,
   initialCustomerId,
+  vatRegistered = true,
 }: {
   quote?: QuoteWithItems;
   customers: SelectableCustomer[];
@@ -31,6 +32,7 @@ export function QuoteForm({
   defaultCurrency: string;
   defaultTerms: string;
   initialCustomerId?: string;
+  vatRegistered?: boolean;
 }) {
   const action = quote ? updateQuoteAction : createQuoteAction;
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -64,15 +66,17 @@ export function QuoteForm({
             <Label htmlFor="reference">Reference</Label>
             <Input id="reference" name="reference" defaultValue={quote?.reference} />
           </div>
-          <div className="flex items-center gap-3 pt-6">
-            <Switch
-              id="prices_include_vat"
-              name="prices_include_vat"
-              checked={pricesIncludeVat}
-              onCheckedChange={setPricesIncludeVat}
-            />
-            <Label htmlFor="prices_include_vat">Prices include VAT</Label>
-          </div>
+          {vatRegistered && (
+            <div className="flex items-center gap-3 pt-6">
+              <Switch
+                id="prices_include_vat"
+                name="prices_include_vat"
+                checked={pricesIncludeVat}
+                onCheckedChange={setPricesIncludeVat}
+              />
+              <Label htmlFor="prices_include_vat">Prices include VAT</Label>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -87,6 +91,7 @@ export function QuoteForm({
             defaultVatRate={defaultVatRate}
             pricesIncludeVat={pricesIncludeVat}
             currency={defaultCurrency}
+            vatRegistered={vatRegistered}
             initialItems={quote?.quote_items.map((item) => ({
               product_id: item.product_id,
               description: item.description,

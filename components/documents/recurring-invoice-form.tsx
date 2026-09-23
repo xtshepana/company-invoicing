@@ -27,6 +27,7 @@ export function RecurringInvoiceForm({
   defaultVatRate,
   defaultCurrency,
   initialCustomerId,
+  vatRegistered = true,
 }: {
   recurringInvoice?: RecurringInvoiceWithItems;
   customers: SelectableCustomer[];
@@ -34,6 +35,7 @@ export function RecurringInvoiceForm({
   defaultVatRate: number;
   defaultCurrency: string;
   initialCustomerId?: string;
+  vatRegistered?: boolean;
 }) {
   const action = recurringInvoice ? updateRecurringInvoiceAction : createRecurringInvoiceAction;
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -125,10 +127,12 @@ export function RecurringInvoiceForm({
               defaultValue={recurringInvoice?.payment_terms_days ?? ""}
             />
           </div>
-          <div className="flex items-center gap-3 pt-6">
-            <Switch id="prices_include_vat" name="prices_include_vat" checked={pricesIncludeVat} onCheckedChange={setPricesIncludeVat} />
-            <Label htmlFor="prices_include_vat">Prices include VAT</Label>
-          </div>
+          {vatRegistered && (
+            <div className="flex items-center gap-3 pt-6">
+              <Switch id="prices_include_vat" name="prices_include_vat" checked={pricesIncludeVat} onCheckedChange={setPricesIncludeVat} />
+              <Label htmlFor="prices_include_vat">Prices include VAT</Label>
+            </div>
+          )}
           <div className="flex items-center gap-3 pt-6">
             <Switch id="auto_generate" name="auto_generate" checked={autoGenerate} onCheckedChange={setAutoGenerate} />
             <Label htmlFor="auto_generate">Automatically generate invoices</Label>
@@ -151,6 +155,7 @@ export function RecurringInvoiceForm({
             defaultVatRate={defaultVatRate}
             pricesIncludeVat={pricesIncludeVat}
             currency={defaultCurrency}
+            vatRegistered={vatRegistered}
             initialItems={recurringInvoice?.recurring_invoice_items.map((item) => ({
               product_id: item.product_id,
               description: item.description,

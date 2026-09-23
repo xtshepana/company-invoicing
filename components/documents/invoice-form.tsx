@@ -30,6 +30,7 @@ export function InvoiceForm({
   defaultTerms,
   defaultPaymentTermsDays,
   initialCustomerId,
+  vatRegistered = true,
 }: {
   invoice?: InvoiceWithItems;
   customers: SelectableCustomer[];
@@ -39,6 +40,7 @@ export function InvoiceForm({
   defaultTerms: string;
   defaultPaymentTermsDays: number;
   initialCustomerId?: string;
+  vatRegistered?: boolean;
 }) {
   const action = invoice ? updateInvoiceAction : createInvoiceAction;
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -91,15 +93,17 @@ export function InvoiceForm({
             <Label htmlFor="reference">Reference</Label>
             <Input id="reference" name="reference" defaultValue={invoice?.reference} />
           </div>
-          <div className="flex items-center gap-3 pt-6">
-            <Switch
-              id="prices_include_vat"
-              name="prices_include_vat"
-              checked={pricesIncludeVat}
-              onCheckedChange={setPricesIncludeVat}
-            />
-            <Label htmlFor="prices_include_vat">Prices include VAT</Label>
-          </div>
+          {vatRegistered && (
+            <div className="flex items-center gap-3 pt-6">
+              <Switch
+                id="prices_include_vat"
+                name="prices_include_vat"
+                checked={pricesIncludeVat}
+                onCheckedChange={setPricesIncludeVat}
+              />
+              <Label htmlFor="prices_include_vat">Prices include VAT</Label>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -114,6 +118,7 @@ export function InvoiceForm({
             defaultVatRate={defaultVatRate}
             pricesIncludeVat={pricesIncludeVat}
             currency={defaultCurrency}
+            vatRegistered={vatRegistered}
             initialItems={invoice?.invoice_items.map((item) => ({
               product_id: item.product_id,
               description: item.description,

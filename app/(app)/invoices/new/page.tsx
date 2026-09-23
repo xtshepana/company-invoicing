@@ -40,6 +40,7 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
         defaultTerms={settings.default_invoice_footer}
         defaultPaymentTermsDays={settings.default_payment_terms_days}
         initialCustomerId={customer}
+        vatRegistered={settings.vat_registered}
       />
     </div>
   );

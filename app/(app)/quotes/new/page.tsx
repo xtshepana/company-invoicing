@@ -39,6 +39,7 @@ export default async function NewQuotePage({ searchParams }: NewQuotePageProps) 
         defaultCurrency={settings.default_currency}
         defaultTerms={settings.default_quote_terms}
         initialCustomerId={customer}
+        vatRegistered={settings.vat_registered}
       />
     </div>
   );

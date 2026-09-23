@@ -43,6 +43,7 @@ export default async function NewCreditNotePage({ searchParams }: NewCreditNoteP
         initialCustomerId={customer}
         initialInvoiceId={invoice}
         initialInvoices={initialInvoices}
+        vatRegistered={settings.vat_registered}
       />
     </div>
   );

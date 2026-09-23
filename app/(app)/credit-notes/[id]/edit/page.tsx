@@ -46,6 +46,7 @@ export default async function EditCreditNotePage({ params }: EditCreditNotePageP
         defaultCurrency={settings.default_currency}
         defaultTerms={settings.default_invoice_footer}
         initialInvoices={initialInvoices}
+        vatRegistered={settings.vat_registered}
       />
     </div>
   );

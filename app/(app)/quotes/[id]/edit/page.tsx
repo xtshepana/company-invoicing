@@ -44,6 +44,7 @@ export default async function EditQuotePage({ params }: EditQuotePageProps) {
         defaultVatRate={settings.default_vat_rate}
         defaultCurrency={settings.default_currency}
         defaultTerms={settings.default_quote_terms}
+        vatRegistered={settings.vat_registered}
       />
     </div>
   );

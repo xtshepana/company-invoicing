@@ -44,7 +44,12 @@ export async function createInvoiceAction(_prev: ActionResult, formData: FormDat
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const { lines, totals } = computeDocumentTotals(parsed.data.line_items, parsed.data.prices_include_vat);
+  const settings = await getCompanySettings();
+  const { lines, totals } = computeDocumentTotals(
+    parsed.data.line_items,
+    parsed.data.prices_include_vat,
+    settings.vat_registered
+  );
   const supabase = await createSupabaseServerClient();
 
   const { data: invoiceId, error } = await supabase.rpc("create_invoice", {
@@ -89,7 +94,12 @@ export async function updateInvoiceAction(_prev: ActionResult, formData: FormDat
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const { lines, totals } = computeDocumentTotals(parsed.data.line_items, parsed.data.prices_include_vat);
+  const settings = await getCompanySettings();
+  const { lines, totals } = computeDocumentTotals(
+    parsed.data.line_items,
+    parsed.data.prices_include_vat,
+    settings.vat_registered
+  );
   const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.rpc("update_invoice", {

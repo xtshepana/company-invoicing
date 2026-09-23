@@ -42,6 +42,7 @@ export default async function EditRecurringInvoicePage({ params }: EditRecurring
         products={products}
         defaultVatRate={settings.default_vat_rate}
         defaultCurrency={settings.default_currency}
+        vatRegistered={settings.vat_registered}
       />
     </div>
   );

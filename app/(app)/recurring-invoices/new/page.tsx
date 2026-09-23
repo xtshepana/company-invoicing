@@ -38,6 +38,7 @@ export default async function NewRecurringInvoicePage({ searchParams }: NewRecur
         defaultVatRate={settings.default_vat_rate}
         defaultCurrency={settings.default_currency}
         initialCustomerId={customer}
+        vatRegistered={settings.vat_registered}
       />
     </div>
   );

@@ -66,6 +66,7 @@ export type Database = {
           company_name: string;
           credit_note_next_number: number;
           customer_next_number: number;
+          vat_registered: boolean;
           credit_note_prefix: string;
           default_currency: string;
           default_invoice_footer: string;

@@ -18,6 +18,7 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
   const lastState = useRef(state);
   const [pricesIncludeVat, setPricesIncludeVat] = useState(settings.default_prices_include_vat);
   const [remindersEnabled, setRemindersEnabled] = useState(settings.payment_reminders_enabled);
+  const [vatRegistered, setVatRegistered] = useState(settings.vat_registered);
 
   useEffect(() => {
     if (state === lastState.current) return;
@@ -28,6 +29,18 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
 
   return (
     <form action={formAction} className="space-y-4">
+      <div className="flex items-center gap-3 rounded-md border p-3">
+        <Switch id="vat_registered" name="vat_registered" checked={vatRegistered} onCheckedChange={setVatRegistered} />
+        <div>
+          <Label htmlFor="vat_registered">VAT registered</Label>
+          <p className="text-xs text-muted-foreground">
+            {vatRegistered
+              ? "VAT is applied to new invoices, quotes, and credit notes using the rate below."
+              : "Off means every new document is created at 0% VAT, regardless of any product's configured rate — turn this on once your VAT registration comes through."}
+          </p>
+        </div>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="invoice_prefix">Invoice prefix</Label>
@@ -97,6 +110,9 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
             defaultValue={settings.default_vat_rate}
             required
           />
+          {!vatRegistered ? (
+            <p className="text-xs text-muted-foreground">Not used until VAT registered is turned on above.</p>
+          ) : null}
         </div>
         <div className="space-y-2">
           <Label htmlFor="default_currency">Default currency (ISO code)</Label>
