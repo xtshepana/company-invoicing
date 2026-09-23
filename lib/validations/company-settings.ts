@@ -38,6 +38,7 @@ export const invoiceSettingsSchema = z.object({
   credit_note_prefix: z.string().trim().min(1).max(20),
   credit_note_next_number: z.coerce.number().int().positive(),
   default_payment_terms_days: z.coerce.number().int().min(0).max(365),
+  vat_registered: z.boolean(),
   default_vat_rate: z.coerce.number().min(0).max(100),
   default_prices_include_vat: z.boolean(),
   default_currency: z.string().trim().length(3),

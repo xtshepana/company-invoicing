@@ -27,6 +27,7 @@ export function CreditNoteForm({
   initialCustomerId,
   initialInvoiceId,
   initialInvoices,
+  vatRegistered = true,
 }: {
   creditNote?: CreditNoteWithItems;
   customers: SelectableCustomer[];
@@ -37,6 +38,7 @@ export function CreditNoteForm({
   initialCustomerId?: string;
   initialInvoiceId?: string;
   initialInvoices?: CustomerInvoiceOption[];
+  vatRegistered?: boolean;
 }) {
   const action = creditNote ? updateCreditNoteAction : createCreditNoteAction;
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -118,15 +120,17 @@ export function CreditNoteForm({
             <Label htmlFor="reason">Reason</Label>
             <Input id="reason" name="reason" defaultValue={creditNote?.reason} placeholder="e.g. Returned goods" />
           </div>
-          <div className="flex items-center gap-3 pt-6">
-            <Switch
-              id="prices_include_vat"
-              name="prices_include_vat"
-              checked={pricesIncludeVat}
-              onCheckedChange={setPricesIncludeVat}
-            />
-            <Label htmlFor="prices_include_vat">Prices include VAT</Label>
-          </div>
+          {vatRegistered && (
+            <div className="flex items-center gap-3 pt-6">
+              <Switch
+                id="prices_include_vat"
+                name="prices_include_vat"
+                checked={pricesIncludeVat}
+                onCheckedChange={setPricesIncludeVat}
+              />
+              <Label htmlFor="prices_include_vat">Prices include VAT</Label>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -141,6 +145,7 @@ export function CreditNoteForm({
             defaultVatRate={defaultVatRate}
             pricesIncludeVat={pricesIncludeVat}
             currency={defaultCurrency}
+            vatRegistered={vatRegistered}
             initialItems={creditNote?.credit_note_items.map((item) => ({
               product_id: item.product_id,
               description: item.description,

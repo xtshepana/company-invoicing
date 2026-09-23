@@ -183,7 +183,7 @@ async function generateOneRecurringInvoice(
       return { recurringInvoiceId: recurring.id, status: "already_generated", invoiceId: existingInvoice.id };
     }
 
-    const { lines, totals } = computeDocumentTotals(lineItems, recurring.prices_include_vat);
+    const { lines, totals } = computeDocumentTotals(lineItems, recurring.prices_include_vat, settings.vat_registered);
     const termsDays = recurring.payment_terms_days ?? customer?.payment_terms_days ?? settings.default_payment_terms_days;
     const dueDate = addDays(invoiceDate, termsDays);
 

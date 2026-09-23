@@ -58,4 +58,41 @@ describe("computeDocumentTotals", () => {
     const reconciled = Number(totals.subtotal) + Number(totals.vat_total);
     expect(reconciled).toBeCloseTo(Number(totals.total), 2);
   });
+
+  it("forces VAT to zero on every line when the company is not VAT-registered, regardless of configured line vat_rate", () => {
+    const items: LineItemInput[] = [
+      { product_id: null, description: "Line A", quantity: 2, unit_price: 500, discount_percent: 10, vat_rate: 15 },
+      { product_id: null, description: "Line B", quantity: 1, unit_price: 1000, discount_percent: 0, vat_rate: 20 },
+    ];
+
+    const { lines, totals } = computeDocumentTotals(items, false, false);
+
+    expect(lines.every((line) => line.vat_rate === 0)).toBe(true);
+    expect(lines.every((line) => line.line_vat === "0.00")).toBe(true);
+    expect(totals.vat_total).toBe("0.00");
+    expect(totals.subtotal).toBe("1900.00");
+    expect(totals.total).toBe("1900.00");
+  });
+
+  it("ignores prices_include_vat when not VAT-registered, since a forced 0% rate makes the flag mathematically inert", () => {
+    const items: LineItemInput[] = [
+      { product_id: null, description: "Item", quantity: 1, unit_price: 1150, discount_percent: 0, vat_rate: 15 },
+    ];
+
+    const { totals } = computeDocumentTotals(items, true, false);
+
+    expect(totals.vat_total).toBe("0.00");
+    expect(totals.subtotal).toBe("1150.00");
+    expect(totals.total).toBe("1150.00");
+  });
+
+  it("defaults to VAT-registered behavior when the third argument is omitted, preserving existing callers", () => {
+    const items: LineItemInput[] = [
+      { product_id: null, description: "Item", quantity: 1, unit_price: 2500, discount_percent: 0, vat_rate: 15 },
+    ];
+
+    const { totals } = computeDocumentTotals(items, false);
+
+    expect(totals.vat_total).toBe("375.00");
+  });
 });

@@ -46,6 +46,7 @@ export function LineItemsEditor({
   pricesIncludeVat,
   currency = "ZAR",
   initialItems,
+  vatRegistered = true,
 }: {
   name: string;
   products: EditableProduct[];
@@ -53,11 +54,14 @@ export function LineItemsEditor({
   pricesIncludeVat: boolean;
   currency?: string;
   initialItems?: LineItemInput[];
+  /** When false, VAT is forced to 0% here (and re-enforced server-side regardless - see computeDocumentTotals) and the VAT % column/summary line are hidden rather than shown as a disabled 0. */
+  vatRegistered?: boolean;
 }) {
+  const effectiveDefaultVatRate = vatRegistered ? defaultVatRate : 0;
   const [lines, setLines] = useState<EditableLine[]>(() =>
     initialItems && initialItems.length > 0
-      ? initialItems.map((item) => ({ ...item, key: nextKey() }))
-      : [emptyLine(defaultVatRate)]
+      ? initialItems.map((item) => ({ ...item, key: nextKey(), vat_rate: vatRegistered ? item.vat_rate : 0 }))
+      : [emptyLine(effectiveDefaultVatRate)]
   );
 
   const productItems = useMemo(
@@ -80,12 +84,12 @@ export function LineItemsEditor({
       product_id: product.id,
       description: product.name,
       unit_price: product.selling_price,
-      vat_rate: product.vat_rate,
+      vat_rate: vatRegistered ? product.vat_rate : 0,
     });
   }
 
   function addLine() {
-    setLines((prev) => [...prev, emptyLine(defaultVatRate)]);
+    setLines((prev) => [...prev, emptyLine(effectiveDefaultVatRate)]);
   }
 
   function removeLine(key: string) {
@@ -124,7 +128,7 @@ export function LineItemsEditor({
               <TableHead className="w-24">Qty</TableHead>
               <TableHead className="w-32">Unit price</TableHead>
               <TableHead className="w-24">Disc %</TableHead>
-              <TableHead className="w-24">VAT %</TableHead>
+              {vatRegistered && <TableHead className="w-24">VAT %</TableHead>}
               <TableHead className="w-32 text-right">Line total</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -191,17 +195,19 @@ export function LineItemsEditor({
                     onChange={(e) => updateLine(line.key, { discount_percent: Number(e.target.value) })}
                   />
                 </TableCell>
-                <TableCell className="align-top">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step="0.01"
-                    value={line.vat_rate}
-                    onChange={(e) => updateLine(line.key, { vat_rate: Number(e.target.value) })}
-                    required
-                  />
-                </TableCell>
+                {vatRegistered && (
+                  <TableCell className="align-top">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.01"
+                      value={line.vat_rate}
+                      onChange={(e) => updateLine(line.key, { vat_rate: Number(e.target.value) })}
+                      required
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="text-right align-top text-sm font-medium">
                   {formatCurrency(computedLines[index].lineTotal, currency)}
                 </TableCell>
@@ -236,10 +242,12 @@ export function LineItemsEditor({
           <span className="text-muted-foreground">Discount</span>
           <span>-{formatCurrency(totals.discount, currency)}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">VAT</span>
-          <span>{formatCurrency(totals.vat, currency)}</span>
-        </div>
+        {vatRegistered && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">VAT</span>
+            <span>{formatCurrency(totals.vat, currency)}</span>
+          </div>
+        )}
         <div className="flex justify-between border-t pt-1 font-semibold">
           <span>Total</span>
           <span>{formatCurrency(totals.total, currency)}</span>

@@ -44,7 +44,12 @@ export async function createCreditNoteAction(_prev: ActionResult, formData: Form
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const { lines, totals } = computeDocumentTotals(parsed.data.line_items, parsed.data.prices_include_vat);
+  const settings = await getCompanySettings();
+  const { lines, totals } = computeDocumentTotals(
+    parsed.data.line_items,
+    parsed.data.prices_include_vat,
+    settings.vat_registered
+  );
   const supabase = await createSupabaseServerClient();
 
   const { data: creditNoteId, error } = await supabase.rpc("create_credit_note", {
@@ -89,7 +94,12 @@ export async function updateCreditNoteAction(_prev: ActionResult, formData: Form
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const { lines, totals } = computeDocumentTotals(parsed.data.line_items, parsed.data.prices_include_vat);
+  const settings = await getCompanySettings();
+  const { lines, totals } = computeDocumentTotals(
+    parsed.data.line_items,
+    parsed.data.prices_include_vat,
+    settings.vat_registered
+  );
   const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.rpc("update_credit_note", {

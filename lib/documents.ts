@@ -25,12 +25,24 @@ export interface DocumentTotals {
  * Computes per-line and document-level totals for a quote or invoice.
  * Shared by both so "subtotal + VAT - discount = total" is guaranteed to
  * reconcile the same way everywhere (see lib/money.ts).
+ *
+ * `vatRegistered` forces every line's vat_rate to 0 when false, regardless
+ * of what a product's configured rate or the client sent - this is the
+ * single enforcement point for company_settings.vat_registered, called
+ * from every create/update action (invoice/quote/credit-note/recurring-
+ * invoice) so a not-yet-VAT-registered business can never end up with a
+ * document that charges VAT it isn't legally allowed to charge, no matter
+ * what the UI did or didn't prevent client-side. Defaults to true so any
+ * other/future caller isn't silently affected without opting in.
  */
 export function computeDocumentTotals(
   lineItems: LineItemInput[],
-  pricesIncludeVat: boolean
+  pricesIncludeVat: boolean,
+  vatRegistered = true
 ): { lines: ComputedLine[]; totals: DocumentTotals } {
-  const lineTotals = lineItems.map((item) =>
+  const effectiveItems = vatRegistered ? lineItems : lineItems.map((item) => ({ ...item, vat_rate: 0 }));
+
+  const lineTotals = effectiveItems.map((item) =>
     calculateLineTotals({
       quantity: item.quantity,
       unitPrice: item.unit_price,
@@ -40,7 +52,7 @@ export function computeDocumentTotals(
     })
   );
 
-  const lines: ComputedLine[] = lineItems.map((item, index) => ({
+  const lines: ComputedLine[] = effectiveItems.map((item, index) => ({
     product_id: item.product_id,
     description: item.description,
     quantity: item.quantity,
