@@ -14,6 +14,11 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
+// Draft is an internal workflow state with nothing useful to tell a
+// customer looking at the PDF - only show the badge once there's something
+// worth flagging (issued, cancelled).
+const HIDDEN_STATUS_BADGES = new Set(["draft"]);
+
 export function CreditNotePdf({ creditNote, settings }: { creditNote: CreditNoteWithItems; settings: CompanySettings }) {
   const currency = settings.default_currency;
   const customer = creditNote.customers;
@@ -34,7 +39,9 @@ export function CreditNotePdf({ creditNote, settings }: { creditNote: CreditNote
           </View>
           <View>
             <Text style={s.docTitle}>CREDIT NOTE</Text>
-            <Text style={s.statusBadge}>{STATUS_LABELS[creditNote.status] ?? creditNote.status}</Text>
+            {!HIDDEN_STATUS_BADGES.has(creditNote.status) ? (
+              <Text style={s.statusBadge}>{STATUS_LABELS[creditNote.status] ?? creditNote.status}</Text>
+            ) : null}
             <Text style={s.metaLabel}>Credit note number</Text>
             <Text style={s.metaValue}>{creditNote.credit_note_number}</Text>
             <Text style={s.metaLabel}>Date</Text>

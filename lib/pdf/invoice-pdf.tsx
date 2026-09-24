@@ -17,6 +17,11 @@ const STATUS_LABELS: Record<string, string> = {
   void: "Void",
 };
 
+// Draft/sent are internal workflow states with nothing useful to tell a
+// customer looking at the PDF - only show the badge once there's something
+// worth flagging (paid, partially paid, cancelled, void).
+const HIDDEN_STATUS_BADGES = new Set(["draft", "sent"]);
+
 export function InvoicePdf({ invoice, settings }: { invoice: InvoiceWithItems; settings: CompanySettings }) {
   const currency = settings.default_currency;
   const customer = invoice.customers;
@@ -39,7 +44,9 @@ export function InvoicePdf({ invoice, settings }: { invoice: InvoiceWithItems; s
           </View>
           <View>
             <Text style={s.docTitle}>INVOICE</Text>
-            <Text style={s.statusBadge}>{STATUS_LABELS[invoice.status] ?? invoice.status}</Text>
+            {!HIDDEN_STATUS_BADGES.has(invoice.status) ? (
+              <Text style={s.statusBadge}>{STATUS_LABELS[invoice.status] ?? invoice.status}</Text>
+            ) : null}
             <Text style={s.metaLabel}>Invoice number</Text>
             <Text style={s.metaValue}>{invoice.invoice_number}</Text>
             <Text style={s.metaLabel}>Invoice date</Text>
