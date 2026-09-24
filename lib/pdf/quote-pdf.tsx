@@ -17,6 +17,11 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
+// Draft/sent/accepted are internal workflow states with nothing useful to
+// tell a customer looking at the PDF - only show the badge once there's
+// something worth flagging (rejected, expired, cancelled).
+const HIDDEN_STATUS_BADGES = new Set(["draft", "sent", "accepted"]);
+
 export function QuotePdf({ quote, settings }: { quote: QuoteWithItems; settings: CompanySettings }) {
   const currency = settings.default_currency;
   const customer = quote.customers;
@@ -37,7 +42,9 @@ export function QuotePdf({ quote, settings }: { quote: QuoteWithItems; settings:
           </View>
           <View>
             <Text style={s.docTitle}>QUOTATION</Text>
-            <Text style={s.statusBadge}>{STATUS_LABELS[quote.status] ?? quote.status}</Text>
+            {!HIDDEN_STATUS_BADGES.has(quote.status) ? (
+              <Text style={s.statusBadge}>{STATUS_LABELS[quote.status] ?? quote.status}</Text>
+            ) : null}
             <Text style={s.metaLabel}>Quote number</Text>
             <Text style={s.metaValue}>{quote.quote_number}</Text>
             <Text style={s.metaLabel}>Quote date</Text>
