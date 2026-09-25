@@ -61,6 +61,7 @@ export const getCompanySettings = cache(async (): Promise<CompanySettings> => {
       default_quote_terms: "",
       payment_reminders_enabled: true,
       vat_registered: false,
+      pdf_template: "classic",
       updated_at: now,
     };
   }

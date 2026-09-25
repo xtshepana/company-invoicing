@@ -18,3 +18,12 @@ export function readableTextColor(hex: string): "#000000" | "#ffffff" {
   const luminance = 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
   return luminance > 0.45 ? "#000000" : "#ffffff";
 }
+
+/** Mixes `hex` toward white by `amount` (0-1) — used for subtle tinted backgrounds (e.g. a table header row) that still read as the brand color without needing alpha compositing, which PDF renderers handle inconsistently. */
+export function tintColor(hex: string, amount: number): string {
+  const mix = (channel: number) => Math.round(channel + (255 - channel) * amount);
+  const r = mix(parseInt(hex.slice(1, 3), 16));
+  const g = mix(parseInt(hex.slice(3, 5), 16));
+  const b = mix(parseInt(hex.slice(5, 7), 16));
+  return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}

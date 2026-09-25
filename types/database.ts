@@ -81,6 +81,7 @@ export type Database = {
           invoice_prefix: string;
           logo_url: string | null;
           payment_reminders_enabled: boolean;
+          pdf_template: string;
           phone: string;
           quote_next_number: number;
           quote_prefix: string;
