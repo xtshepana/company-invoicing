@@ -8,7 +8,7 @@ import { getCurrentProfile } from "@/server/services/auth";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { CompanyProfileForm } from "@/components/settings/company-profile-form";
 import { LogoUploadForm } from "@/components/settings/logo-upload-form";
-import { BrandColorForm } from "@/components/settings/brand-color-form";
+import { AppearanceForm } from "@/components/settings/appearance-form";
 import { BankDetailsForm } from "@/components/settings/bank-details-form";
 import { InvoiceSettingsForm } from "@/components/settings/invoice-settings-form";
 
@@ -51,10 +51,14 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
-              <CardDescription>Pick a brand color for the app and your documents.</CardDescription>
+              <CardDescription>Pick a brand color and document template for the app and your documents.</CardDescription>
             </CardHeader>
             <CardContent>
-              <BrandColorForm key={settings.brand_color} brandColor={settings.brand_color} />
+              <AppearanceForm
+                key={`${settings.brand_color}-${settings.pdf_template}`}
+                brandColor={settings.brand_color}
+                pdfTemplate={settings.pdf_template}
+              />
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { HEX_COLOR_PATTERN } from "@/lib/color-utils";
 
+export const PDF_TEMPLATES = ["classic", "modern", "minimal", "bold", "elegant"] as const;
+
 export const appearanceSchema = z.object({
   brand_color: z
     .union([z.literal(""), z.string().trim().regex(HEX_COLOR_PATTERN, "Must be a hex color like #2563eb.")])
     .transform((value) => (value === "" ? null : value)),
+  pdf_template: z.enum(PDF_TEMPLATES),
 });
 export type AppearanceInput = z.infer<typeof appearanceSchema>;
 
