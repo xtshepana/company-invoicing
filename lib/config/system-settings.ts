@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { SETTINGS_DEFAULTS } from "@/lib/config/defaults";
 import type { Tables } from "@/types/database";
 
@@ -68,4 +69,18 @@ export const getCompanySettings = cache(async (): Promise<CompanySettings> => {
   }
 
   return data;
+});
+
+/**
+ * Just the logo, for the pre-auth pages (login, forgot/reset password).
+ * Those pages render before a session exists, so `getCompanySettings()`
+ * (RLS-scoped to active staff) can't be used there - this goes through
+ * the service-role client instead, matching how server/services/email.ts
+ * reads data purely to build a system-generated record, not to expose it
+ * back to an unauthenticated caller. Only the logo URL, nothing else.
+ */
+export const getPublicBranding = cache(async (): Promise<{ logoUrl: string | null }> => {
+  const admin = createAdminSupabaseClient();
+  const { data } = await admin.from("company_settings").select("logo_url").eq("id", true).maybeSingle();
+  return { logoUrl: data?.logo_url ?? null };
 });
