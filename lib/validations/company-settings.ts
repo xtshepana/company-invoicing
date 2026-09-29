@@ -8,6 +8,8 @@ export const appearanceSchema = z.object({
     .union([z.literal(""), z.string().trim().regex(HEX_COLOR_PATTERN, "Must be a hex color like #2563eb.")])
     .transform((value) => (value === "" ? null : value)),
   pdf_template: z.enum(PDF_TEMPLATES),
+  /** Whether the company name text is shown on generated PDFs, alongside the logo - see show_company_name on company_settings. */
+  show_company_name: z.boolean(),
 });
 export type AppearanceInput = z.infer<typeof appearanceSchema>;
 

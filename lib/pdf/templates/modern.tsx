@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { formatCurrency } from "@/lib/money";
 import { readableTextColor, tintColor } from "@/lib/color-utils";
+import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
 import { DEFAULT_ACCENT_COLOR, type TemplateProps } from "@/lib/pdf/templates/types";
 
 /** Colored header band, tinted table header, and a boxed grand total - the most visually assertive of the set. */
@@ -87,9 +88,10 @@ export function ModernTemplate({ data, settings }: TemplateProps) {
           <View>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image, not an HTML img; no alt prop exists on this component */}
             {settings.logo_url ? <Image style={st.logo} src={settings.logo_url} /> : null}
-            <Text style={st.companyName}>{settings.company_name}</Text>
+            {settings.show_company_name ? <Text style={st.companyName}>{settings.company_name}</Text> : null}
             <Text style={st.companySmall}>{settings.address_physical}</Text>
-            <Text style={st.companySmall}>{[settings.phone, settings.email].filter(Boolean).join("  ·  ")}</Text>
+            {settings.phone ? <Text style={st.companySmall}>{settings.phone}</Text> : null}
+            {settings.email ? <Text style={st.companySmall}>{settings.email}</Text> : null}
           </View>
           <View>
             <Text style={st.docTitle}>{data.docTitle}</Text>
@@ -206,6 +208,7 @@ export function ModernTemplate({ data, settings }: TemplateProps) {
           ) : null}
         </View>
 
+        <LetterheadFooter settings={settings} position={{ bottom: 16, left: 40, right: 40 }} />
         <View style={st.footer} fixed />
       </Page>
     </Document>

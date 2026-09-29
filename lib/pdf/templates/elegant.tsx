@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { formatCurrency } from "@/lib/money";
+import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
 import type { TemplateProps } from "@/lib/pdf/templates/types";
 
 /** Serif typography, a centered masthead, and a deliberately muted, timeless palette - no brand color, by design. */
@@ -42,18 +43,6 @@ export function ElegantTemplate({ data, settings }: TemplateProps) {
     totalsValueFinal: { fontFamily: "Times-Bold", fontSize: 11 },
     twoColumn: { flexDirection: "row", justifyContent: "space-between", marginTop: 26, gap: 20 },
     block: { width: "48%" },
-    footer: {
-      position: "absolute",
-      bottom: 32,
-      left: 48,
-      right: 48,
-      textAlign: "center",
-      fontSize: 8,
-      fontFamily: "Times-Italic",
-      color: "#999999",
-      borderTop: "0.6px solid #dddddd",
-      paddingTop: 8,
-    },
   });
 
   return (
@@ -62,10 +51,11 @@ export function ElegantTemplate({ data, settings }: TemplateProps) {
         <View style={st.masthead}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image, not an HTML img; no alt prop exists on this component */}
           {settings.logo_url ? <Image style={st.logo} src={settings.logo_url} /> : null}
-          <Text style={st.companyName}>{settings.company_name}</Text>
+          {settings.show_company_name ? <Text style={st.companyName}>{settings.company_name}</Text> : null}
           {settings.trading_name ? <Text style={st.small}>Trading as {settings.trading_name}</Text> : null}
           <Text style={st.small}>{settings.address_physical}</Text>
-          <Text style={st.small}>{[settings.phone, settings.email].filter(Boolean).join("  ·  ")}</Text>
+          {settings.phone ? <Text style={st.small}>{settings.phone}</Text> : null}
+          {settings.email ? <Text style={st.small}>{settings.email}</Text> : null}
           {settings.vat_number ? <Text style={st.small}>VAT No: {settings.vat_number}</Text> : null}
         </View>
 
@@ -187,9 +177,14 @@ export function ElegantTemplate({ data, settings }: TemplateProps) {
           </View>
         ) : null}
 
-        <Text style={st.footer} fixed>
-          {settings.default_invoice_footer || settings.company_name}
-        </Text>
+        <LetterheadFooter
+          settings={settings}
+          position={{ bottom: 32, left: 48, right: 48 }}
+          lineColor="#dddddd"
+          textColor="#999999"
+          fontFamily="Times-Roman"
+          italicFontFamily="Times-Italic"
+        />
       </Page>
     </Document>
   );

@@ -6,6 +6,7 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { updateAppearanceAction } from "@/server/actions/company-settings-actions";
 import type { ActionResult } from "@/server/actions/auth-actions";
 import { BRAND_COLOR_PRESETS, HEX_COLOR_PATTERN } from "@/lib/color-utils";
@@ -26,14 +27,17 @@ const TEMPLATE_DESCRIPTIONS: Record<(typeof PDF_TEMPLATES)[number], string> = {
 export function AppearanceForm({
   brandColor,
   pdfTemplate,
+  showCompanyName,
 }: {
   brandColor: string | null;
   pdfTemplate: string;
+  showCompanyName: boolean;
 }) {
   const [state, formAction, pending] = useActionState(updateAppearanceAction, initialState);
   const lastState = useRef(state);
   const [selectedColor, setSelectedColor] = useState<string | null>(brandColor);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(pdfTemplate);
+  const [showName, setShowName] = useState(showCompanyName);
 
   useEffect(() => {
     if (state === lastState.current) return;
@@ -140,6 +144,16 @@ export function AppearanceForm({
               </a>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Switch id="show_company_name" name="show_company_name" checked={showName} onCheckedChange={setShowName} />
+        <div>
+          <Label htmlFor="show_company_name">Show company name on documents</Label>
+          <p className="text-sm text-muted-foreground">
+            Turn off if your logo already shows the company name — having both can look redundant.
+          </p>
         </div>
       </div>
 

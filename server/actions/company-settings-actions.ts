@@ -16,7 +16,12 @@ import type { Json, TablesUpdate } from "@/types/database";
 function formToObject(formData: FormData): Record<string, unknown> {
   const obj: Record<string, unknown> = {};
   for (const [key, value] of formData.entries()) {
-    if (key === "default_prices_include_vat" || key === "payment_reminders_enabled" || key === "vat_registered") {
+    if (
+      key === "default_prices_include_vat" ||
+      key === "payment_reminders_enabled" ||
+      key === "vat_registered" ||
+      key === "show_company_name"
+    ) {
       obj[key] = value === "on" || value === "true";
       continue;
     }
@@ -25,6 +30,7 @@ function formToObject(formData: FormData): Record<string, unknown> {
   if (!("default_prices_include_vat" in obj)) obj.default_prices_include_vat = false;
   if (!("payment_reminders_enabled" in obj)) obj.payment_reminders_enabled = false;
   if (!("vat_registered" in obj)) obj.vat_registered = false;
+  if (!("show_company_name" in obj)) obj.show_company_name = false;
   return obj;
 }
 

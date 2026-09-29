@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import { pdfStyles as s } from "@/lib/pdf/styles";
 import { formatCurrency } from "@/lib/money";
+import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
 import type { CustomerStatement } from "@/server/services/statements";
 import type { CompanySettings } from "@/lib/config/system-settings";
 
@@ -25,9 +26,10 @@ export function StatementPdf({ statement, settings }: { statement: CustomerState
           <View>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image, not an HTML img; no alt prop exists on this component */}
             {settings.logo_url ? <Image style={s.logo} src={settings.logo_url} /> : null}
-            <Text style={s.companyName}>{settings.company_name}</Text>
+            {settings.show_company_name ? <Text style={s.companyName}>{settings.company_name}</Text> : null}
             <Text style={s.small}>{settings.address_physical}</Text>
-            <Text style={s.small}>{[settings.phone, settings.email].filter(Boolean).join("  ·  ")}</Text>
+            {settings.phone ? <Text style={s.small}>{settings.phone}</Text> : null}
+            {settings.email ? <Text style={s.small}>{settings.email}</Text> : null}
           </View>
           <View>
             <Text style={s.docTitle}>STATEMENT</Text>
@@ -73,9 +75,7 @@ export function StatementPdf({ statement, settings }: { statement: CustomerState
           </View>
         </View>
 
-        <Text style={s.footer} fixed>
-          {settings.default_invoice_footer || settings.company_name}
-        </Text>
+        <LetterheadFooter settings={settings} position={{ bottom: 30, left: 40, right: 40 }} />
       </Page>
     </Document>
   );

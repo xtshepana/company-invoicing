@@ -62,6 +62,7 @@ export const getCompanySettings = cache(async (): Promise<CompanySettings> => {
       payment_reminders_enabled: true,
       vat_registered: false,
       pdf_template: "classic",
+      show_company_name: true,
       updated_at: now,
     };
   }
