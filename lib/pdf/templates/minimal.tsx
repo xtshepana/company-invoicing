@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { formatCurrency } from "@/lib/money";
+import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
 import { DEFAULT_ACCENT_COLOR, type TemplateProps } from "@/lib/pdf/templates/types";
 
 /** Airy and understated - no fills, thin rules only, one accent-colored line under the header. */
@@ -40,7 +41,6 @@ export function MinimalTemplate({ data, settings }: TemplateProps) {
     totalsValueFinal: { fontFamily: "Helvetica-Bold", fontSize: 12 },
     twoColumn: { flexDirection: "row", justifyContent: "space-between", marginTop: 32, gap: 24 },
     block: { width: "48%" },
-    footer: { position: "absolute", bottom: 36, left: 48, right: 48, textAlign: "center", fontSize: 7, color: "#aaaaaa" },
   });
 
   return (
@@ -50,9 +50,10 @@ export function MinimalTemplate({ data, settings }: TemplateProps) {
           <View>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image, not an HTML img; no alt prop exists on this component */}
             {settings.logo_url ? <Image style={st.logo} src={settings.logo_url} /> : null}
-            <Text style={st.companyName}>{settings.company_name}</Text>
+            {settings.show_company_name ? <Text style={st.companyName}>{settings.company_name}</Text> : null}
             <Text style={st.small}>{settings.address_physical}</Text>
-            <Text style={st.small}>{[settings.phone, settings.email].filter(Boolean).join("   ")}</Text>
+            {settings.phone ? <Text style={st.small}>{settings.phone}</Text> : null}
+            {settings.email ? <Text style={st.small}>{settings.email}</Text> : null}
             {settings.vat_number ? <Text style={st.small}>VAT No: {settings.vat_number}</Text> : null}
           </View>
           <View>
@@ -170,9 +171,12 @@ export function MinimalTemplate({ data, settings }: TemplateProps) {
           </View>
         ) : null}
 
-        <Text style={st.footer} fixed>
-          {settings.default_invoice_footer || settings.company_name}
-        </Text>
+        <LetterheadFooter
+          settings={settings}
+          position={{ bottom: 32, left: 48, right: 48 }}
+          lineColor="#eaeaea"
+          textColor="#aaaaaa"
+        />
       </Page>
     </Document>
   );

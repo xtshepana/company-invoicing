@@ -119,17 +119,6 @@ export const pdfStyles = StyleSheet.create({
   block: {
     width: "48%",
   },
-  footer: {
-    position: "absolute",
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: "center",
-    fontSize: 8,
-    color: "#888888",
-    borderTop: "1px solid #e5e5e5",
-    paddingTop: 8,
-  },
   statusBadge: {
     fontSize: 9,
     fontFamily: "Helvetica-Bold",

@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { formatCurrency } from "@/lib/money";
 import { readableTextColor } from "@/lib/color-utils";
+import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
 import { DEFAULT_ACCENT_COLOR, type TemplateProps } from "@/lib/pdf/templates/types";
 
 const SIDEBAR_WIDTH = 170;
@@ -64,17 +65,6 @@ export function BoldTemplate({ data, settings }: TemplateProps) {
     balanceLabelFinal: { fontFamily: "Helvetica-Bold", fontSize: 10 },
     twoColumn: { flexDirection: "row", justifyContent: "space-between", marginTop: 24, gap: 20 },
     block: { width: "48%" },
-    footer: {
-      position: "absolute",
-      bottom: 0,
-      left: SIDEBAR_WIDTH,
-      right: 0,
-      textAlign: "center",
-      fontSize: 7.5,
-      color: "#999999",
-      paddingVertical: 10,
-      borderTop: "1px solid #ececec",
-    },
   });
 
   return (
@@ -83,11 +73,10 @@ export function BoldTemplate({ data, settings }: TemplateProps) {
         <View style={st.sidebar} fixed>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image, not an HTML img; no alt prop exists on this component */}
           {settings.logo_url ? <Image style={st.logo} src={settings.logo_url} /> : null}
-          <Text style={st.sidebarCompanyName}>{settings.company_name}</Text>
+          {settings.show_company_name ? <Text style={st.sidebarCompanyName}>{settings.company_name}</Text> : null}
           {settings.address_physical ? <Text style={st.sidebarSmall}>{settings.address_physical}</Text> : null}
-          {[settings.phone, settings.email].filter(Boolean).length > 0 ? (
-            <Text style={st.sidebarSmall}>{[settings.phone, settings.email].filter(Boolean).join("\n")}</Text>
-          ) : null}
+          {settings.phone ? <Text style={st.sidebarSmall}>{settings.phone}</Text> : null}
+          {settings.email ? <Text style={st.sidebarSmall}>{settings.email}</Text> : null}
           {settings.vat_number ? <Text style={st.sidebarSmall}>VAT No: {settings.vat_number}</Text> : null}
 
           <Text style={st.sidebarDocTitle}>{data.docTitle}</Text>
@@ -203,9 +192,7 @@ export function BoldTemplate({ data, settings }: TemplateProps) {
           ) : null}
         </View>
 
-        <Text style={st.footer} fixed>
-          {settings.default_invoice_footer || settings.company_name}
-        </Text>
+        <LetterheadFooter settings={settings} position={{ bottom: 16, left: SIDEBAR_WIDTH + 24, right: 24 }} />
       </Page>
     </Document>
   );

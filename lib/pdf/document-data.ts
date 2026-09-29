@@ -149,7 +149,7 @@ export function quoteToDocumentData(quote: QuoteWithItems): DocumentData {
     number: quote.quote_number,
     statusLabel: QUOTE_HIDDEN_STATUSES.has(quote.status) ? null : (QUOTE_STATUS_LABELS[quote.status] ?? quote.status),
     metaFields,
-    billToLabel: "Quoted To",
+    billToLabel: "Bill To",
     customer: customerFrom(quote.customers),
     lineItems: quote.quote_items.map((item) => ({
       description: item.description,
@@ -195,7 +195,7 @@ export function creditNoteToDocumentData(creditNote: CreditNoteWithItems): Docum
       ? null
       : (CREDIT_NOTE_STATUS_LABELS[creditNote.status] ?? creditNote.status),
     metaFields,
-    billToLabel: "Credit To",
+    billToLabel: "Bill To",
     customer: customerFrom(creditNote.customers),
     lineItems: creditNote.credit_note_items.map((item) => ({
       description: item.description,
