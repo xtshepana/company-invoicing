@@ -163,24 +163,68 @@ export async function setQuoteStatusAction(_prev: ActionResult, formData: FormDa
     newValue: { status },
   });
 
-  if (status === "sent") {
-    await sendQuoteSentEmail(id);
+  revalidatePath("/quotes");
+  revalidatePath(`/quotes/${id}`);
+  return { success: true };
+}
+
+/**
+ * Emailing a draft quote (transitioning it to "sent" as a side effect) and
+ * re-emailing one that's already been sent are the same action - see the
+ * matching comment on sendInvoiceEmailAction in invoice-actions.ts.
+ */
+export async function sendQuoteEmailAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const actor = await requireModuleAccess("quotes");
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return { error: "Missing quote." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: existing, error: fetchError } = await supabase
+    .from("quotes")
+    .select("status, converted_invoice_id, customers(email)")
+    .eq("id", id)
+    .single();
+  if (fetchError || !existing) return { error: "Quote not found." };
+  if (existing.converted_invoice_id) {
+    return { error: "This quote has already been converted to an invoice and can no longer be emailed." };
   }
+  if (existing.status === "cancelled") {
+    return { error: "This quote has been cancelled and can no longer be emailed." };
+  }
+  // Checked before touching status, so a missing email never leaves the
+  // quote marked "sent" without actually having emailed anyone.
+  if (!existing.customers?.email) {
+    return { error: "This customer has no email address on file. Add one to send the quote." };
+  }
+
+  if (existing.status === "draft") {
+    const { error } = await supabase.from("quotes").update({ status: "sent" }).eq("id", id).eq("status", "draft");
+    if (error) return { error: "Unable to update this quote. Please try again." };
+    await recordAuditLog({ userId: actor.id, action: "quote.status_changed", entity: "quotes", entityId: id, newValue: { status: "sent" } });
+  } else {
+    await recordAuditLog({ userId: actor.id, action: "quote.email_resent", entity: "quotes", entityId: id });
+  }
+
+  await sendQuoteSentEmail(id);
 
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${id}`);
   return { success: true };
 }
 
-/** Uses the service-role client — see the matching comment on sendInvoiceSentEmail in invoice-actions.ts. */
-async function sendQuoteSentEmail(quoteId: string): Promise<void> {
+/**
+ * Uses the service-role client — see the matching comment on
+ * sendInvoiceSentEmail in invoice-actions.ts. Returns false (without
+ * erroring) when there's no customer email to send to.
+ */
+async function sendQuoteSentEmail(quoteId: string): Promise<boolean> {
   const admin = createAdminSupabaseClient();
   const { data: quote } = await admin
     .from("quotes")
     .select("*, customers(*), quote_items(*)")
     .eq("id", quoteId)
     .single();
-  if (!quote?.customers?.email) return;
+  if (!quote?.customers?.email) return false;
 
   const settings = await getCompanySettings();
   const pdfBuffer = await renderQuotePdf(quote as unknown as QuoteWithItems, settings);
@@ -188,8 +232,6 @@ async function sendQuoteSentEmail(quoteId: string): Promise<void> {
     companyName: settings.company_name,
     customerName: quote.customers.company_name,
     quoteNumber: quote.quote_number,
-    total: quote.total,
-    currency: settings.default_currency,
   });
 
   await sendEmail({
@@ -200,6 +242,7 @@ async function sendQuoteSentEmail(quoteId: string): Promise<void> {
     entityId: quoteId,
     attachment: { filename: `${quote.quote_number}.pdf`, content: pdfBuffer },
   });
+  return true;
 }
 
 export async function convertQuoteToInvoiceAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {

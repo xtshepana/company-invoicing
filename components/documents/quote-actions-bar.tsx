@@ -4,15 +4,16 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Download, Pencil, FileOutput } from "lucide-react";
+import { Download, Pencil, FileOutput, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { setQuoteStatusAction, convertQuoteToInvoiceAction } from "@/server/actions/quote-actions";
+import { setQuoteStatusAction, sendQuoteEmailAction, convertQuoteToInvoiceAction } from "@/server/actions/quote-actions";
 import type { Quote } from "@/server/services/quotes";
 
 export function QuoteActionsBar({ quote }: { quote: Quote }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const isConverted = Boolean(quote.converted_invoice_id);
+  const canEmail = !isConverted && quote.status !== "cancelled";
 
   function setStatus(status: string) {
     const formData = new FormData();
@@ -23,6 +24,19 @@ export function QuoteActionsBar({ quote }: { quote: Quote }) {
       if (result.error) toast.error(result.error);
       else {
         toast.success("Quote updated.");
+        router.refresh();
+      }
+    });
+  }
+
+  function sendEmail() {
+    const formData = new FormData();
+    formData.set("id", quote.id);
+    startTransition(async () => {
+      const result = await sendQuoteEmailAction({}, formData);
+      if (result.error) toast.error(result.error);
+      else {
+        toast.success(quote.status === "draft" ? "Quote sent." : "Quote emailed again.");
         router.refresh();
       }
     });
@@ -47,9 +61,9 @@ export function QuoteActionsBar({ quote }: { quote: Quote }) {
           <Pencil /> Edit
         </Button>
       ) : null}
-      {!isConverted && quote.status === "draft" ? (
-        <Button variant="outline" disabled={pending} onClick={() => setStatus("sent")}>
-          Mark as Sent
+      {canEmail ? (
+        <Button variant="outline" disabled={pending} onClick={sendEmail}>
+          <Mail /> {quote.status === "draft" ? "Send Email" : "Resend Email"}
         </Button>
       ) : null}
       {!isConverted && (quote.status === "draft" || quote.status === "sent") ? (

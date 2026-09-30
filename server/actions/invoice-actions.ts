@@ -137,16 +137,42 @@ export async function updateInvoiceAction(_prev: ActionResult, formData: FormDat
   redirect(`/invoices/${id}`);
 }
 
-export async function markInvoiceSentAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+/**
+ * Marking a draft invoice sent (and emailing it) is the same action as
+ * emailing/re-emailing one that's already been sent — the only difference is
+ * whether the status transition happens first. Available for any status
+ * except cancelled/void, so an invoice can be re-sent (e.g. the customer
+ * lost the original) without needing to reset its status first.
+ */
+export async function sendInvoiceEmailAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const actor = await requireModuleAccess("invoices");
   const id = formData.get("id");
   if (typeof id !== "string" || !id) return { error: "Missing invoice." };
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("invoices").update({ status: "sent" }).eq("id", id).eq("status", "draft");
-  if (error) return { error: "Unable to update this invoice. Please try again." };
+  const { data: existing, error: fetchError } = await supabase
+    .from("invoices")
+    .select("status, customers(email)")
+    .eq("id", id)
+    .single();
+  if (fetchError || !existing) return { error: "Invoice not found." };
+  if (existing.status === "cancelled" || existing.status === "void") {
+    return { error: "This invoice has been cancelled or voided and can no longer be emailed." };
+  }
+  // Checked before touching status, so a missing email never leaves the
+  // invoice marked "sent" without actually having emailed anyone.
+  if (!existing.customers?.email) {
+    return { error: "This customer has no email address on file. Add one to send the invoice." };
+  }
 
-  await recordAuditLog({ userId: actor.id, action: "invoice.marked_sent", entity: "invoices", entityId: id });
+  if (existing.status === "draft") {
+    const { error } = await supabase.from("invoices").update({ status: "sent" }).eq("id", id).eq("status", "draft");
+    if (error) return { error: "Unable to update this invoice. Please try again." };
+    await recordAuditLog({ userId: actor.id, action: "invoice.marked_sent", entity: "invoices", entityId: id });
+  } else {
+    await recordAuditLog({ userId: actor.id, action: "invoice.email_resent", entity: "invoices", entityId: id });
+  }
+
   await sendInvoiceSentEmail(id);
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
@@ -159,16 +185,17 @@ export async function markInvoiceSentAction(_prev: ActionResult, formData: FormD
  * marking the invoice sent also happens to have the customers module
  * enabled — matches how server/services/email.ts and audit.ts already read
  * data purely to build a system-generated record, not to expose it back to
- * the caller's response.
+ * the caller's response. Returns false (without erroring) when there's no
+ * customer email to send to, so callers can decide how to surface that.
  */
-async function sendInvoiceSentEmail(invoiceId: string): Promise<void> {
+async function sendInvoiceSentEmail(invoiceId: string): Promise<boolean> {
   const admin = createAdminSupabaseClient();
   const { data: invoice } = await admin
     .from("invoices")
     .select("*, customers(*), invoice_items(*)")
     .eq("id", invoiceId)
     .single();
-  if (!invoice?.customers?.email) return;
+  if (!invoice?.customers?.email) return false;
 
   const settings = await getCompanySettings();
   const pdfBuffer = await renderInvoicePdf(invoice as unknown as InvoiceWithItems, settings);
@@ -176,10 +203,6 @@ async function sendInvoiceSentEmail(invoiceId: string): Promise<void> {
     companyName: settings.company_name,
     customerName: invoice.customers.company_name,
     invoiceNumber: invoice.invoice_number,
-    total: invoice.total,
-    balanceDue: invoice.balance_due ?? 0,
-    dueDate: invoice.due_date,
-    currency: settings.default_currency,
   });
 
   await sendEmail({
@@ -190,6 +213,7 @@ async function sendInvoiceSentEmail(invoiceId: string): Promise<void> {
     entityId: invoiceId,
     attachment: { filename: `${invoice.invoice_number}.pdf`, content: pdfBuffer },
   });
+  return true;
 }
 
 export async function voidInvoiceAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
