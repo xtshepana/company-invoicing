@@ -10,7 +10,7 @@ import { invoiceSchema } from "@/lib/validations/invoices";
 import { computeDocumentTotals } from "@/lib/documents";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { sendEmail } from "@/server/services/email";
-import { invoiceSentEmail } from "@/lib/email/templates";
+import { invoiceSentEmail, paymentReminderEmail } from "@/lib/email/templates";
 import { renderInvoicePdf } from "@/lib/pdf/render-invoice";
 import type { InvoiceWithItems } from "@/server/services/invoices";
 import type { ActionResult } from "@/server/actions/auth-actions";
@@ -214,6 +214,58 @@ async function sendInvoiceSentEmail(invoiceId: string): Promise<boolean> {
     attachment: { filename: `${invoice.invoice_number}.pdf`, content: pdfBuffer },
   });
   return true;
+}
+
+/**
+ * Manual, human-triggered reminder from the invoice page - independent of
+ * the automatic checkpoint/digest system in app/api/cron/daily/route.tsx,
+ * which never emails the customer directly. This one does, because a
+ * staff member is looking at this specific invoice and deciding to send it.
+ */
+export async function sendPaymentReminderAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const actor = await requireModuleAccess("invoices");
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return { error: "Missing invoice." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: invoice, error: fetchError } = await supabase
+    .from("invoices")
+    .select("invoice_number, due_date, balance_due, status, customers(company_name, email)")
+    .eq("id", id)
+    .single();
+  if (fetchError || !invoice) return { error: "Invoice not found." };
+
+  if (["draft", "paid", "cancelled", "void"].includes(invoice.status)) {
+    return { error: "Only sent, unpaid invoices can be reminded." };
+  }
+  if (!invoice.balance_due || invoice.balance_due <= 0) {
+    return { error: "This invoice has no outstanding balance." };
+  }
+  if (!invoice.customers?.email) {
+    return { error: "This customer has no email address on file. Add one to send a reminder." };
+  }
+
+  const settings = await getCompanySettings();
+  const content = paymentReminderEmail({
+    companyName: settings.company_name,
+    customerName: invoice.customers.company_name,
+    invoiceNumber: invoice.invoice_number,
+    balanceDue: invoice.balance_due,
+    dueDate: invoice.due_date,
+    currency: settings.default_currency,
+  });
+
+  await sendEmail({
+    to: invoice.customers.email,
+    ...content,
+    emailType: "payment_reminder_manual",
+    entity: "invoices",
+    entityId: id,
+  });
+
+  await recordAuditLog({ userId: actor.id, action: "invoice.reminder_sent_manually", entity: "invoices", entityId: id });
+  revalidatePath(`/invoices/${id}`);
+  return { success: true };
 }
 
 export async function voidInvoiceAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
