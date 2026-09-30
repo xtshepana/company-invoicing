@@ -86,3 +86,31 @@ export const getPublicBranding = cache(async (): Promise<{ logoUrl: string | nul
   const { data } = await admin.from("company_settings").select("logo_url").eq("id", true).maybeSingle();
   return { logoUrl: data?.logo_url ?? null };
 });
+
+export interface PublicCompanySettings {
+  companyName: string;
+  logoUrl: string | null;
+  defaultCurrency: string;
+}
+
+/**
+ * Same idea as getPublicBranding, but for the client portal - those pages
+ * need the company name and currency to render at all (not just the
+ * logo), and a customer never has a Supabase session either, so
+ * getCompanySettings() would just fall back to defaults for them. Still
+ * only ever the safe, already-customer-facing subset (never bank
+ * details, VAT number, or numbering sequences).
+ */
+export const getPublicCompanySettings = cache(async (): Promise<PublicCompanySettings> => {
+  const admin = createAdminSupabaseClient();
+  const { data } = await admin
+    .from("company_settings")
+    .select("company_name, logo_url, default_currency")
+    .eq("id", true)
+    .maybeSingle();
+  return {
+    companyName: data?.company_name ?? SETTINGS_DEFAULTS.companyName,
+    logoUrl: data?.logo_url ?? null,
+    defaultCurrency: data?.default_currency ?? SETTINGS_DEFAULTS.defaultCurrency,
+  };
+});
