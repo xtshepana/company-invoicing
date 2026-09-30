@@ -47,9 +47,16 @@ export function getServerEnv(): ServerEnv {
     // cron self-trigger, magic-link emails), never in the browser. A
     // NEXT_PUBLIC_ var gets inlined into the build output at build time,
     // so changing it in the hosting panel and restarting wouldn't even
-    // take effect without a full rebuild - a plain server env var like
-    // this one is read fresh from the process environment on every read.
-    APP_URL: process.env.APP_URL ?? "http://localhost:3000",
+    // take effect without a full rebuild.
+    //
+    // Deliberately not named APP_URL either, even though that's what the
+    // exported property here is still called: on Hostinger's Node.js
+    // hosting, a custom env var literally named APP_URL was silently
+    // overridden by the platform's own internal bind address
+    // (0.0.0.0:<port>) no matter what was set in its env var panel -
+    // APP_URL/HOST/PORT-shaped names appear to be platform-reserved
+    // there. SITE_URL sidesteps that collision.
+    APP_URL: process.env.SITE_URL ?? "http://localhost:3000",
   };
 
   return cachedServerEnv;
