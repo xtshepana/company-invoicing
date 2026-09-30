@@ -271,9 +271,10 @@ type InvoiceForReminder = {
 /**
  * Safety gate: reminders are never emailed to clients directly. On each
  * fixed calendar-date checkpoint (see PAYMENT_REMINDER_CHECKPOINTS), every
- * currently-unpaid, already-issued invoice (drafts excluded — they haven't
- * actually been sent to the customer yet, so reminding them would be
- * confusing) gets flagged, and everyone newly flagged this run is listed
+ * unpaid, already-issued invoice that is actually due (due_date <= today;
+ * drafts excluded — they haven't actually been sent to the customer yet,
+ * so reminding them would be confusing) gets flagged, and everyone newly
+ * flagged this run is listed
  * in one digest to a human (company_settings.reminder_review_email) with
  * their account numbers, who decides who actually gets reminded and how.
  * If that email isn't configured, flagging still happens (so the final
@@ -291,7 +292,8 @@ async function sendDueReminders(admin: AdminClient, settings: CompanySettings, t
     .from("invoices")
     .select("id, invoice_number, due_date, balance_due, status, customers(email, company_name, customer_reference)")
     .gt("balance_due", 0)
-    .not("status", "in", "(draft,cancelled,void)");
+    .not("status", "in", "(draft,cancelled,void)")
+    .lte("due_date", today);
 
   const results: ReminderResult[] = [];
   for (const checkpoint of activeCheckpoints) {
