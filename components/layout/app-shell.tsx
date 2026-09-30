@@ -12,20 +12,33 @@ import type { Profile } from "@/server/services/auth";
 export function AppShell({
   profile,
   companyName,
+  logoUrl,
+  showCompanyName,
   children,
 }: {
   profile: Profile;
   companyName: string;
+  logoUrl: string | null;
+  showCompanyName: boolean;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const brandMark = logoUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element -- external Supabase Storage URL, not a static asset Next can optimize (matches components/settings/logo-upload-form.tsx's preview)
+    <img src={logoUrl} alt="" className="h-6 w-auto max-w-[140px] shrink-0 object-contain" />
+  ) : (
+    <Building2 className="h-5 w-5 shrink-0" />
+  );
+  // Without a logo, the name is the only thing identifying the app - always show it.
+  const showName = showCompanyName || !logoUrl;
 
   return (
     <div className="flex min-h-screen w-full bg-muted/20">
       <aside className="hidden w-64 shrink-0 border-r bg-background md:flex md:flex-col">
         <div className="flex h-14 items-center gap-2 border-b px-4 font-semibold">
-          <Building2 className="h-5 w-5" />
-          <span className="truncate">{companyName}</span>
+          {brandMark}
+          {showName ? <span className="truncate">{companyName}</span> : null}
         </div>
         <SidebarNav profile={profile} />
       </aside>
@@ -38,8 +51,8 @@ export function AppShell({
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
               <SheetTitle className="flex h-14 items-center gap-2 border-b px-4 font-semibold">
-                <Building2 className="h-5 w-5" />
-                <span className="truncate">{companyName}</span>
+                {brandMark}
+                {showName ? <span className="truncate">{companyName}</span> : null}
               </SheetTitle>
               <SidebarNav profile={profile} onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
