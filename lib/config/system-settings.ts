@@ -64,6 +64,7 @@ export const getCompanySettings = cache(async (): Promise<CompanySettings> => {
       vat_registered: false,
       pdf_template: "classic",
       show_company_name: true,
+      accounts_notification_email: null,
       updated_at: now,
     };
   }

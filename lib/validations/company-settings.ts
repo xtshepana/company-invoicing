@@ -51,5 +51,9 @@ export const invoiceSettingsSchema = z.object({
   default_invoice_footer: z.string().max(2000).default(""),
   default_quote_terms: z.string().max(2000).default(""),
   payment_reminders_enabled: z.boolean(),
+  /** Where the "no payment detected, review for suspension" notice goes after the final (10th) reminder checkpoint. */
+  accounts_notification_email: z
+    .union([z.literal(""), z.string().trim().email()])
+    .transform((value) => (value === "" ? null : value)),
 });
 export type InvoiceSettingsInput = z.infer<typeof invoiceSettingsSchema>;

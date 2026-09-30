@@ -142,6 +142,20 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
           />
           <Label htmlFor="payment_reminders_enabled">Send automatic payment reminder emails</Label>
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="accounts_notification_email">Accounts notification email</Label>
+          <Input
+            id="accounts_notification_email"
+            name="accounts_notification_email"
+            type="email"
+            defaultValue={settings.accounts_notification_email ?? ""}
+            placeholder="accounts@yourcompany.co.za"
+          />
+          <p className="text-xs text-muted-foreground">
+            Gets an internal notice when a customer still hasn&apos;t paid after the final reminder, so the
+            account can be reviewed for suspension.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2">

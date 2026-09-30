@@ -168,6 +168,7 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          accounts_notification_email: string | null
           address_physical: string
           address_postal: string
           bank_account_name: string
@@ -206,6 +207,7 @@ export type Database = {
           website: string
         }
         Insert: {
+          accounts_notification_email?: string | null
           address_physical?: string
           address_postal?: string
           bank_account_name?: string
@@ -244,6 +246,7 @@ export type Database = {
           website?: string
         }
         Update: {
+          accounts_notification_email?: string | null
           address_physical?: string
           address_postal?: string
           bank_account_name?: string
@@ -914,6 +917,38 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_checkpoints_sent: {
+        Row: {
+          checkpoint: string
+          id: string
+          invoice_id: string
+          period_month: string
+          sent_at: string
+        }
+        Insert: {
+          checkpoint: string
+          id?: string
+          invoice_id: string
+          period_month: string
+          sent_at?: string
+        }
+        Update: {
+          checkpoint?: string
+          id?: string
+          invoice_id?: string
+          period_month?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_checkpoints_sent_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
         ]

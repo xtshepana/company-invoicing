@@ -28,6 +28,7 @@ const EXPORT_TABLES = [
   "bank_import_batches",
   "bank_transactions",
   "invoice_reminders_sent",
+  "payment_checkpoints_sent",
   "email_logs",
   "audit_logs",
 ] as const;
