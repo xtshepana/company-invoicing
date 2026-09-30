@@ -208,5 +208,6 @@ async function sendCreditNoteIssuedEmail(creditNoteId: string): Promise<void> {
     entity: "credit_notes",
     entityId: creditNoteId,
     attachment: { filename: `${creditNote.credit_note_number}.pdf`, content: pdfBuffer },
+    fromName: settings.company_name,
   });
 }

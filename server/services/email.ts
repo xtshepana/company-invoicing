@@ -11,6 +11,15 @@ export interface SendEmailParams extends EmailContent {
   entity: string;
   entityId?: string;
   attachment?: { filename: string; content: Buffer };
+  /** Shown as the sender's display name (e.g. the company name) instead of whatever's baked into EMAIL_FROM. */
+  fromName?: string;
+}
+
+/** Keeps EMAIL_FROM's address but swaps in a per-send display name, e.g. "Acme Ltd <invoices@acme.com>". */
+function buildFromHeader(emailFrom: string, fromName?: string): string {
+  if (!fromName) return emailFrom;
+  const address = emailFrom.match(/<([^>]+)>/)?.[1] ?? emailFrom.trim();
+  return `${fromName} <${address}>`;
 }
 
 /**
@@ -42,7 +51,7 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
 
   try {
     const { error } = await resend.emails.send({
-      from: env.EMAIL_FROM,
+      from: buildFromHeader(env.EMAIL_FROM, params.fromName),
       to: params.to,
       subject: params.subject,
       html: params.html,
