@@ -6,9 +6,9 @@ import { computeDocumentTotals } from "@/lib/documents";
 import { mapWithConcurrency } from "@/lib/concurrency";
 import { recordAuditLog } from "@/server/services/audit";
 import { sendEmail } from "@/server/services/email";
-import { recurringInvoiceGeneratedEmail, paymentReminderEmail } from "@/lib/email/templates";
+import { recurringInvoiceGeneratedEmail, paymentReminderEmail, accountBlockNoticeEmail } from "@/lib/email/templates";
 import { InvoicePdf } from "@/lib/pdf/invoice-pdf";
-import { REMINDER_OFFSET_DAYS } from "@/lib/config/defaults";
+import { PAYMENT_REMINDER_CHECKPOINTS } from "@/lib/config/defaults";
 import type { LineItemInput } from "@/lib/validations/line-items";
 import type { CompanySettings } from "@/lib/config/system-settings";
 import type { InvoiceWithItems } from "@/server/services/invoices";
@@ -34,9 +34,11 @@ interface GenerationResult {
   error?: string;
 }
 
+type ReminderCheckpoint = "day_30" | "day_5" | "day_10";
+
 interface ReminderResult {
   invoiceId: string;
-  offsetDays: number;
+  checkpoint: ReminderCheckpoint;
   status: "sent" | "error";
   error?: string;
 }
@@ -47,7 +49,7 @@ interface ReminderResult {
  * Every step here is idempotent — running this twice on the same day must
  * never double-generate an invoice or double-send a reminder (see
  * generate_recurring_invoice's own idempotency check, and the
- * invoice_reminders_sent unique constraint here).
+ * payment_checkpoints_sent unique constraint here).
  */
 export async function GET(request: Request) {
   const env = getServerEnv();
@@ -258,54 +260,67 @@ async function emailGeneratedInvoice(
   });
 }
 
+type InvoiceForReminder = {
+  id: string;
+  invoice_number: string;
+  due_date: string;
+  balance_due: number | null;
+  customers: { email: string; company_name: string } | null;
+};
+
 /**
- * Reminders only ever fire at exactly REMINDER_OFFSET_DAYS days from due —
- * that's five discrete due_dates relative to today, so this filters on
- * `due_date in (...)` (backed by the existing due_date index) instead of
- * fetching every outstanding invoice in the system regardless of how close
- * any of them are to a reminder date. The offsetDays re-check below is a
- * defensive no-op given that filter, not load-bearing.
+ * Fixed calendar-date reminders (see PAYMENT_REMINDER_CHECKPOINTS), not
+ * relative to each invoice's own due date — so this queries every
+ * currently-unpaid, already-issued invoice in the system on the days that
+ * match a checkpoint, rather than filtering by due_date. A draft invoice is
+ * excluded: it hasn't actually been sent to the customer yet, so reminding
+ * them about it would be confusing (see the "Bill To" letterhead work for
+ * the same reasoning applied elsewhere).
  */
 async function sendDueReminders(admin: AdminClient, settings: CompanySettings, today: string): Promise<ReminderResult[]> {
-  const targetDueDates = REMINDER_OFFSET_DAYS.map((offset) => addDays(today, -offset));
+  const todayDate = new Date(`${today}T00:00:00Z`);
+  const activeCheckpoints = PAYMENT_REMINDER_CHECKPOINTS.filter((c) => isPaymentCheckpointDay(todayDate, c.day));
+  if (activeCheckpoints.length === 0) return [];
+
+  const periodMonth = `${today.slice(0, 7)}-01`;
 
   const { data: candidates } = await admin
     .from("invoices")
     .select("id, invoice_number, due_date, balance_due, status, customers(email, company_name)")
     .gt("balance_due", 0)
-    .not("status", "in", "(cancelled,void)")
-    .in("due_date", targetDueDates);
+    .not("status", "in", "(draft,cancelled,void)");
 
-  const results = await mapWithConcurrency(candidates ?? [], EMAIL_CONCURRENCY, (invoice) =>
-    sendOneReminder(admin, settings, invoice, today)
-  );
+  const results: ReminderResult[] = [];
+  for (const checkpoint of activeCheckpoints) {
+    const checkpointResults = await mapWithConcurrency(candidates ?? [], EMAIL_CONCURRENCY, (invoice) =>
+      sendOneReminder(admin, settings, invoice, checkpoint, periodMonth)
+    );
+    results.push(...checkpointResults.filter((r): r is ReminderResult => r !== null));
+  }
+  return results;
+}
 
-  return results.filter((r): r is ReminderResult => r !== null);
+/** True on `checkpointDay`, clamped to the real last day of shorter months (e.g. day 30 fires on Feb 28th/29th). */
+function isPaymentCheckpointDay(today: Date, checkpointDay: number): boolean {
+  const daysInMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0)).getUTCDate();
+  return today.getUTCDate() === Math.min(checkpointDay, daysInMonth);
 }
 
 async function sendOneReminder(
   admin: AdminClient,
   settings: CompanySettings,
-  invoice: {
-    id: string;
-    invoice_number: string;
-    due_date: string;
-    balance_due: number | null;
-    customers: { email: string; company_name: string } | null;
-  },
-  today: string
+  invoice: InvoiceForReminder,
+  checkpoint: (typeof PAYMENT_REMINDER_CHECKPOINTS)[number],
+  periodMonth: string
 ): Promise<ReminderResult | null> {
-  const offsetDays = dateDiffInDays(invoice.due_date, today);
-  if (!REMINDER_OFFSET_DAYS.includes(offsetDays as (typeof REMINDER_OFFSET_DAYS)[number])) return null;
-
   const customer = invoice.customers;
   if (!customer?.email) return null;
 
   const { error: insertError } = await admin
-    .from("invoice_reminders_sent")
-    .insert({ invoice_id: invoice.id, offset_days: offsetDays });
+    .from("payment_checkpoints_sent")
+    .insert({ invoice_id: invoice.id, checkpoint: checkpoint.checkpoint, period_month: periodMonth });
   if (insertError) {
-    // Unique violation means this exact reminder already went out — skip silently, not an error.
+    // Unique violation means this checkpoint already fired for this invoice this month — skip silently, not an error.
     return null;
   }
 
@@ -317,7 +332,7 @@ async function sendOneReminder(
       balanceDue: invoice.balance_due ?? 0,
       dueDate: invoice.due_date,
       currency: settings.default_currency,
-      offsetDays,
+      checkpoint: checkpoint.checkpoint,
     });
 
     await sendEmail({
@@ -333,29 +348,63 @@ async function sendOneReminder(
       action: "invoice.reminder_sent",
       entity: "invoices",
       entityId: invoice.id,
-      newValue: { offset_days: offsetDays },
+      newValue: { checkpoint: checkpoint.checkpoint },
     });
 
-    return { invoiceId: invoice.id, offsetDays, status: "sent" };
+    if (checkpoint.isFinal) {
+      await sendAccountBlockNoticeIfConfigured(admin, settings, invoice, periodMonth);
+    }
+
+    return { invoiceId: invoice.id, checkpoint: checkpoint.checkpoint, status: "sent" };
   } catch (err) {
     return {
       invoiceId: invoice.id,
-      offsetDays,
+      checkpoint: checkpoint.checkpoint,
       status: "error",
       error: err instanceof Error ? err.message : "Unknown error.",
     };
   }
 }
 
+/**
+ * Internal-only notice after the final reminder checkpoint, if the invoice
+ * is still unpaid — silently skipped (not an error) when
+ * accounts_notification_email isn't configured, same as sendEmail() itself
+ * degrading to "skipped" for a missing RESEND_API_KEY.
+ */
+async function sendAccountBlockNoticeIfConfigured(
+  admin: AdminClient,
+  settings: CompanySettings,
+  invoice: InvoiceForReminder,
+  periodMonth: string
+): Promise<void> {
+  if (!settings.accounts_notification_email) return;
+
+  const { error: insertError } = await admin
+    .from("payment_checkpoints_sent")
+    .insert({ invoice_id: invoice.id, checkpoint: "block_notice", period_month: periodMonth });
+  if (insertError) return; // already sent this month
+
+  const content = accountBlockNoticeEmail({
+    companyName: settings.company_name,
+    customerName: invoice.customers?.company_name ?? "Unknown customer",
+    invoiceNumber: invoice.invoice_number,
+    balanceDue: invoice.balance_due ?? 0,
+    dueDate: invoice.due_date,
+    currency: settings.default_currency,
+  });
+
+  await sendEmail({
+    to: settings.accounts_notification_email,
+    ...content,
+    emailType: "account_block_notice",
+    entity: "invoices",
+    entityId: invoice.id,
+  });
+}
+
 function addDays(dateStr: string, days: number): string {
   const date = new Date(`${dateStr}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
-}
-
-/** Days from `fromStr` to `toStr` (positive when `toStr` is later). */
-function dateDiffInDays(fromStr: string, toStr: string): number {
-  const from = new Date(`${fromStr}T00:00:00Z`).getTime();
-  const to = new Date(`${toStr}T00:00:00Z`).getTime();
-  return Math.round((to - from) / (1000 * 60 * 60 * 24));
 }

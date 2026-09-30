@@ -18,12 +18,22 @@ export const SETTINGS_DEFAULTS = {
 } as const;
 
 /**
- * Days relative to an invoice's due date at which a payment reminder email
- * may be sent (negative = before due, 0 = due today, positive = days
- * overdue) — matches the exact example schedule in the spec. Whether
- * reminders are sent at all is the one thing actually configurable in
- * Settings (`company_settings.payment_reminders_enabled`); these offsets
- * are fixed rather than a full rules engine to keep the feature
- * proportional to what was asked for.
+ * Fixed calendar days-of-month at which every currently-unpaid invoice gets
+ * a payment reminder — not relative to each invoice's own due date, since
+ * this business's billing cycle is monthly and due dates cluster around
+ * month-end regardless of when a given invoice was issued. `day: 30` is
+ * clamped to the real last day of shorter months (so it still fires once,
+ * on the 28th/29th, in February) — see `isPaymentCheckpointDay` in
+ * app/api/cron/daily/route.tsx. The last checkpoint also triggers the
+ * internal "still unpaid, review for suspension" notice to
+ * `company_settings.accounts_notification_email` if nothing's been paid by
+ * then. Whether reminders are sent at all is the one thing actually
+ * configurable in Settings (`company_settings.payment_reminders_enabled`);
+ * these dates are fixed rather than a full rules engine to keep the
+ * feature proportional to what was asked for.
  */
-export const REMINDER_OFFSET_DAYS = [-7, 0, 7, 14, 30] as const;
+export const PAYMENT_REMINDER_CHECKPOINTS = [
+  { day: 30, checkpoint: "day_30" as const },
+  { day: 5, checkpoint: "day_5" as const },
+  { day: 10, checkpoint: "day_10" as const, isFinal: true },
+];

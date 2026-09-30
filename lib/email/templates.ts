@@ -139,6 +139,12 @@ export function creditNoteIssuedEmail(params: {
   };
 }
 
+const REMINDER_CHECKPOINT_COPY: Record<"day_30" | "day_5" | "day_10", { subjectPrefix: string; timing: string; urgent?: boolean }> = {
+  day_30: { subjectPrefix: "Reminder", timing: "is due for payment" },
+  day_5: { subjectPrefix: "Overdue", timing: "is now overdue" },
+  day_10: { subjectPrefix: "Final notice", timing: "is now significantly overdue", urgent: true },
+};
+
 export function paymentReminderEmail(params: {
   companyName: string;
   customerName: string;
@@ -146,18 +152,13 @@ export function paymentReminderEmail(params: {
   balanceDue: number;
   dueDate: string;
   currency: string;
-  offsetDays: number;
+  checkpoint: "day_30" | "day_5" | "day_10";
 }): EmailContent {
-  const { companyName, customerName, invoiceNumber, balanceDue, dueDate, currency, offsetDays } = params;
-  const timing =
-    offsetDays < 0
-      ? `is due in ${Math.abs(offsetDays)} day${Math.abs(offsetDays) === 1 ? "" : "s"}`
-      : offsetDays === 0
-        ? "is due today"
-        : `is now ${offsetDays} day${offsetDays === 1 ? "" : "s"} overdue`;
+  const { companyName, customerName, invoiceNumber, balanceDue, dueDate, currency, checkpoint } = params;
+  const { subjectPrefix, timing, urgent } = REMINDER_CHECKPOINT_COPY[checkpoint];
 
   return {
-    subject: offsetDays > 0 ? `Overdue: Invoice ${invoiceNumber}` : `Reminder: Invoice ${invoiceNumber} ${timing}`,
+    subject: `${subjectPrefix}: Invoice ${invoiceNumber} from ${companyName}`,
     html: layout(
       companyName,
       `
@@ -167,7 +168,41 @@ export function paymentReminderEmail(params: {
         <tr><td style="padding: 4px 0; color: #555;">Amount due</td><td style="text-align: right; font-weight: bold;">${formatCurrency(balanceDue, currency)}</td></tr>
         <tr><td style="padding: 4px 0; color: #555;">Due date</td><td style="text-align: right;">${new Date(dueDate).toLocaleDateString("en-ZA")}</td></tr>
       </table>
-      <p>Please arrange payment at your earliest convenience.</p>
+      <p>Please arrange payment at your earliest convenience${urgent ? " to avoid any interruption to your service" : ""}.</p>
+      `
+    ),
+  };
+}
+
+/**
+ * Internal notice (not sent to the customer) after the final reminder
+ * checkpoint if an invoice is still unpaid — for the accounts/admin team to
+ * review the account for suspension. Distinct from paymentReminderEmail's
+ * "day_10" copy, which the customer sees.
+ */
+export function accountBlockNoticeEmail(params: {
+  companyName: string;
+  customerName: string;
+  invoiceNumber: string;
+  balanceDue: number;
+  dueDate: string;
+  currency: string;
+}): EmailContent {
+  const { companyName, customerName, invoiceNumber, balanceDue, dueDate, currency } = params;
+  return {
+    subject: `Action needed: ${customerName} still unpaid — review for suspension`,
+    html: layout(
+      companyName,
+      `
+      <p>No payment has been detected for <strong>${escapeHtml(customerName)}</strong> after the final
+      reminder on invoice <strong>${escapeHtml(invoiceNumber)}</strong>.</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 4px 0; color: #555;">Customer</td><td style="text-align: right; font-weight: bold;">${escapeHtml(customerName)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #555;">Invoice</td><td style="text-align: right;">${escapeHtml(invoiceNumber)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #555;">Amount overdue</td><td style="text-align: right; font-weight: bold;">${formatCurrency(balanceDue, currency)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #555;">Due date</td><td style="text-align: right;">${new Date(dueDate).toLocaleDateString("en-ZA")}</td></tr>
+      </table>
+      <p>Please review this account for suspension.</p>
       `
     ),
   };
