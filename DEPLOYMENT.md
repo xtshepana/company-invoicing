@@ -40,10 +40,14 @@ from `.env.example`:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (server-only secret — never expose this)
-- `APP_URL` (your production domain, e.g. `https://invoicing.yourcompany.co.za` -
+- `SITE_URL` (your production domain, e.g. `https://invoicing.yourcompany.co.za` -
   deliberately not `NEXT_PUBLIC_`-prefixed; it's server-only, and a
   `NEXT_PUBLIC_` var gets inlined into the build at build time, so
-  changing it later wouldn't take effect without a full rebuild)
+  changing it later wouldn't take effect without a full rebuild. Also
+  deliberately not named `APP_URL` - on Hostinger's Node.js hosting that
+  exact name was silently overridden by the platform's own internal
+  bind address, `0.0.0.0:<port>`, no matter what was set in its env var
+  panel. If your host does something similar, pick yet another name.)
 - `CRON_SECRET` (generate a new one for production: `openssl rand -hex 32`)
 - `RESEND_API_KEY`, `EMAIL_FROM` (once the email phase ships)
 
@@ -59,7 +63,7 @@ order via the Supabase SQL editor or `supabase db push`.
 
 Point your domain at the Hostinger Node.js application (hPanel handles
 this under **Domains**) and enable Hostinger's free SSL certificate for it.
-Update `APP_URL` to match the final `https://` domain — this is used to
+Update `SITE_URL` to match the final `https://` domain — this is used to
 build password-reset, client-portal magic-link, and invite email links.
 
 ## 7. Cron jobs
@@ -82,7 +86,7 @@ deduplicated per `(invoice_id, offset_days)`.
   curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" https://yourdomain.com/api/cron/daily
   ```
   Replace `YOUR_CRON_SECRET` with the exact value of `CRON_SECRET` from
-  step 4, and the URL with your production `APP_URL`.
+  step 4, and the URL with your production `SITE_URL`.
 
 **If your plan is Hostinger's Node.js Web App hosting** (GitHub-integrated
 deploys, `hbuilds/versions/...` on disk, a "Runtime Logs" panel instead of
