@@ -257,6 +257,7 @@ async function emailGeneratedInvoice(
     entity: "invoices",
     entityId: invoiceId,
     attachment: { filename: `${invoice.invoice_number}.pdf`, content: Buffer.from(pdfBuffer) },
+    fromName: settings.company_name,
   });
 }
 
@@ -370,6 +371,7 @@ async function sendReminderReviewDigest(
       ...content,
       emailType: "payment_reminder_review",
       entity: "invoices",
+      fromName: settings.company_name,
     });
     return null;
   } catch (err) {
@@ -411,6 +413,7 @@ async function sendAccountBlockNoticeIfConfigured(
     emailType: "account_block_notice",
     entity: "invoices",
     entityId: invoice.id,
+    fromName: settings.company_name,
   });
 }
 

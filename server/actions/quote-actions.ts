@@ -241,6 +241,7 @@ async function sendQuoteSentEmail(quoteId: string): Promise<boolean> {
     entity: "quotes",
     entityId: quoteId,
     attachment: { filename: `${quote.quote_number}.pdf`, content: pdfBuffer },
+    fromName: settings.company_name,
   });
   return true;
 }

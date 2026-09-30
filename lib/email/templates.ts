@@ -7,7 +7,7 @@ export interface EmailContent {
 
 function layout(companyName: string, bodyHtml: string): string {
   return `
-  <div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+  <div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0; color: #1a1a1a;">
     <div style="padding: 24px 0; border-bottom: 2px solid #1a1a1a; margin-bottom: 24px;">
       <strong style="font-size: 18px;">${escapeHtml(companyName)}</strong>
     </div>

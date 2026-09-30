@@ -106,6 +106,7 @@ async function sendPaymentReceiptEmail(customerId: string, amount: number, payme
     emailType: "payment_receipt",
     entity: "customers",
     entityId: customerId,
+    fromName: settings.company_name,
   });
 }
 
