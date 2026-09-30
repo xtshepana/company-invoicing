@@ -43,7 +43,7 @@ test("customer through invoice, payment, and credit note", async ({ page }) => {
 
   const invoiceUrl = page.url();
 
-  // "Mark as Sent" / "Record payment" / "Issue" each chain several
+  // "Send Email" / "Record payment" / "Issue" each chain several
   // sequential Supabase round trips server-side plus a PDF render and an
   // email-log write (see invoice-actions.ts / payment-actions.ts /
   // credit-note-actions.ts) before responding — comfortably under a
@@ -52,7 +52,7 @@ test("customer through invoice, payment, and credit note", async ({ page }) => {
   const SLOW_ACTION_TIMEOUT = 20_000;
 
   await test.step("mark the invoice as sent", async () => {
-    await page.getByRole("button", { name: "Mark as Sent" }).click();
+    await page.getByRole("button", { name: "Send Email" }).click();
     await expect(page.getByText("Sent", { exact: true })).toBeVisible({ timeout: SLOW_ACTION_TIMEOUT });
   });
 

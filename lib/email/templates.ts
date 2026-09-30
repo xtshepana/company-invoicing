@@ -35,30 +35,31 @@ function escapeHtml(value: string): string {
   });
 }
 
+/**
+ * Shared body for the invoice/quotation "here's your document" emails -
+ * same wording either way, just the document type word and the company
+ * sign-off change. See invoiceSentEmail/quoteSentEmail.
+ */
+function documentSentBody(companyName: string, customerName: string, documentType: "invoice" | "quotation"): string {
+  return `
+    <p>Dear ${escapeHtml(customerName)},</p>
+    <p>Thank you for choosing ${escapeHtml(companyName)}.</p>
+    <p>Please find attached your ${documentType} for your attention.</p>
+    <p>If you have any questions or require any changes, please feel free to contact us. We are happy to assist.</p>
+    <p>We appreciate your business and look forward to serving you.</p>
+    <p>Kind regards,<br>${escapeHtml(companyName)}</p>
+    `;
+}
+
 export function invoiceSentEmail(params: {
   companyName: string;
   customerName: string;
   invoiceNumber: string;
-  total: number;
-  balanceDue: number;
-  dueDate: string;
-  currency: string;
 }): EmailContent {
-  const { companyName, customerName, invoiceNumber, total, balanceDue, dueDate, currency } = params;
+  const { companyName, customerName, invoiceNumber } = params;
   return {
     subject: `Invoice ${invoiceNumber} from ${companyName}`,
-    html: layout(
-      companyName,
-      `
-      <p>Dear ${escapeHtml(customerName)},</p>
-      <p>Please find attached invoice <strong>${escapeHtml(invoiceNumber)}</strong> for ${formatCurrency(total, currency)}.</p>
-      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-        <tr><td style="padding: 4px 0; color: #555;">Amount due</td><td style="text-align: right; font-weight: bold;">${formatCurrency(balanceDue, currency)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #555;">Due date</td><td style="text-align: right;">${new Date(dueDate).toLocaleDateString("en-ZA")}</td></tr>
-      </table>
-      <p>Thank you for your business.</p>
-      `
-    ),
+    html: layout(companyName, documentSentBody(companyName, customerName, "invoice")),
   };
 }
 
@@ -66,20 +67,11 @@ export function quoteSentEmail(params: {
   companyName: string;
   customerName: string;
   quoteNumber: string;
-  total: number;
-  currency: string;
 }): EmailContent {
-  const { companyName, customerName, quoteNumber, total, currency } = params;
+  const { companyName, customerName, quoteNumber } = params;
   return {
     subject: `Quotation ${quoteNumber} from ${companyName}`,
-    html: layout(
-      companyName,
-      `
-      <p>Dear ${escapeHtml(customerName)},</p>
-      <p>Please find attached quotation <strong>${escapeHtml(quoteNumber)}</strong> for ${formatCurrency(total, currency)}.</p>
-      <p>Let us know if you have any questions.</p>
-      `
-    ),
+    html: layout(companyName, documentSentBody(companyName, customerName, "quotation")),
   };
 }
 
