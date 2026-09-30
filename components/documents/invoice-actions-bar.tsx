@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Download, Pencil, Mail } from "lucide-react";
+import { Download, Pencil, Mail, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -17,7 +17,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { sendInvoiceEmailAction, voidInvoiceAction, cancelInvoiceAction } from "@/server/actions/invoice-actions";
+import {
+  sendInvoiceEmailAction,
+  sendPaymentReminderAction,
+  voidInvoiceAction,
+  cancelInvoiceAction,
+} from "@/server/actions/invoice-actions";
 import type { Invoice } from "@/server/services/invoices";
 
 export function InvoiceActionsBar({ invoice }: { invoice: Invoice }) {
@@ -25,6 +30,8 @@ export function InvoiceActionsBar({ invoice }: { invoice: Invoice }) {
   const router = useRouter();
   const canEdit = !["paid", "void", "cancelled"].includes(invoice.status) && invoice.amount_paid === 0;
   const canEmail = !["void", "cancelled"].includes(invoice.status);
+  const canRemind =
+    !["draft", "paid", "void", "cancelled"].includes(invoice.status) && (invoice.balance_due ?? 0) > 0;
 
   function sendEmail() {
     const formData = new FormData();
@@ -36,6 +43,16 @@ export function InvoiceActionsBar({ invoice }: { invoice: Invoice }) {
         toast.success(invoice.status === "draft" ? "Invoice sent." : "Invoice emailed again.");
         router.refresh();
       }
+    });
+  }
+
+  function sendReminder() {
+    const formData = new FormData();
+    formData.set("id", invoice.id);
+    startTransition(async () => {
+      const result = await sendPaymentReminderAction({}, formData);
+      if (result.error) toast.error(result.error);
+      else toast.success("Reminder sent.");
     });
   }
 
@@ -82,6 +99,11 @@ export function InvoiceActionsBar({ invoice }: { invoice: Invoice }) {
       {canEmail ? (
         <Button variant="outline" disabled={pending} onClick={sendEmail}>
           <Mail /> {invoice.status === "draft" ? "Send Email" : "Resend Email"}
+        </Button>
+      ) : null}
+      {canRemind ? (
+        <Button variant="outline" disabled={pending} onClick={sendReminder}>
+          <BellRing /> Send Reminder
         </Button>
       ) : null}
       {canEdit ? (

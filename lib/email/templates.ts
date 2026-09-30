@@ -139,6 +139,39 @@ export function creditNoteIssuedEmail(params: {
   };
 }
 
+/**
+ * Sent directly to the customer, but only ever on demand - a staff member
+ * clicking "Send Reminder" on the invoice page (see sendPaymentReminderAction
+ * in server/actions/invoice-actions.ts). Distinct from the automatic
+ * checkpoint system's paymentReminderReviewEmail, which never emails the
+ * customer directly; this one does, because a human decided to send it.
+ */
+export function paymentReminderEmail(params: {
+  companyName: string;
+  customerName: string;
+  invoiceNumber: string;
+  balanceDue: number;
+  dueDate: string;
+  currency: string;
+}): EmailContent {
+  const { companyName, customerName, invoiceNumber, balanceDue, dueDate, currency } = params;
+  return {
+    subject: `Payment reminder: Invoice ${invoiceNumber} from ${companyName}`,
+    html: layout(
+      companyName,
+      `
+      <p>Dear ${escapeHtml(customerName)},</p>
+      <p>This is a reminder that invoice <strong>${escapeHtml(invoiceNumber)}</strong> remains unpaid.</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 4px 0; color: #555;">Amount due</td><td style="text-align: right; font-weight: bold;">${formatCurrency(balanceDue, currency)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #555;">Due date</td><td style="text-align: right;">${new Date(dueDate).toLocaleDateString("en-ZA")}</td></tr>
+      </table>
+      <p>Please arrange payment at your earliest convenience. If you've already paid, please disregard this reminder.</p>
+      `
+    ),
+  };
+}
+
 const REMINDER_CHECKPOINT_LABEL: Record<"day_30" | "day_5" | "day_10", string> = {
   day_30: "30th (due)",
   day_5: "5th (overdue)",
