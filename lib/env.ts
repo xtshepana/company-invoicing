@@ -42,6 +42,10 @@ export function getServerEnv(): ServerEnv {
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM ?? "no-reply@example.com",
     CRON_SECRET: required("CRON_SECRET", process.env.CRON_SECRET),
+    // NEXT_PUBLIC_* values are inlined into the build output at build time,
+    // not read fresh at process start - changing this in the hosting
+    // panel and restarting the running process is not enough on its own;
+    // it takes an actual rebuild (a new deploy) to pick up a new value.
     APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   };
 
