@@ -166,6 +166,69 @@ export type Database = {
           },
         ]
       }
+      client_magic_links: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          customer_ids: string[]
+          email: string
+          expires_at: string
+          id: string
+          token_hash: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          customer_ids: string[]
+          email: string
+          expires_at: string
+          id?: string
+          token_hash: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          customer_ids?: string[]
+          email?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+        }
+        Relationships: []
+      }
+      client_sessions: {
+        Row: {
+          created_at: string
+          customer_ids: string[]
+          email: string
+          expires_at: string
+          id: string
+          last_seen_at: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          customer_ids: string[]
+          email: string
+          expires_at: string
+          id?: string
+          last_seen_at?: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          customer_ids?: string[]
+          email?: string
+          expires_at?: string
+          id?: string
+          last_seen_at?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           accounts_notification_email: string | null
