@@ -1,6 +1,7 @@
 import "server-only";
 
 import crypto from "node:crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
@@ -149,8 +150,13 @@ export async function verifyClientMagicLink(token: string): Promise<ClientSessio
   return { customerIds: link.customer_ids };
 }
 
-/** Returns the current client session, or null if there isn't a valid one. Never throws. */
-export async function getClientSession(): Promise<ClientSession | null> {
+/**
+ * Returns the current client session, or null if there isn't a valid one.
+ * Never throws. Wrapped in cache() so a layout and every page/action under
+ * it share one cookie-and-DB lookup per request, same pattern as
+ * getCurrentProfile() for staff.
+ */
+export const getClientSession = cache(async (): Promise<ClientSession | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -169,7 +175,7 @@ export async function getClientSession(): Promise<ClientSession | null> {
   void admin.from("client_sessions").update({ last_seen_at: new Date().toISOString() }).eq("id", session.id);
 
   return { customerIds: session.customer_ids };
-}
+});
 
 /** Throws UnauthenticatedClientError if there's no valid session - use from every client-portal page/action. */
 export async function requireClientSession(): Promise<ClientSession> {
