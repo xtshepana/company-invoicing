@@ -150,9 +150,10 @@ export function AppearanceForm({
       <div className="flex items-center gap-3">
         <Switch id="show_company_name" name="show_company_name" checked={showName} onCheckedChange={setShowName} />
         <div>
-          <Label htmlFor="show_company_name">Show company name on documents</Label>
+          <Label htmlFor="show_company_name">Show company name</Label>
           <p className="text-sm text-muted-foreground">
-            Turn off if your logo already shows the company name — having both can look redundant.
+            Shown next to your logo in the app and on documents. Turn off if your logo already shows the
+            company name — having both can look redundant.
           </p>
         </div>
       </div>

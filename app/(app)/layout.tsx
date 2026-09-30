@@ -42,7 +42,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }
         `}</style>
       ) : null}
-      <AppShell profile={profile} companyName={settings.company_name}>
+      <AppShell
+        profile={profile}
+        companyName={settings.company_name}
+        logoUrl={settings.logo_url}
+        showCompanyName={settings.show_company_name}
+      >
         {children}
       </AppShell>
     </>
