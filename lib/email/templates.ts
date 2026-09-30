@@ -139,46 +139,77 @@ export function creditNoteIssuedEmail(params: {
   };
 }
 
-const REMINDER_CHECKPOINT_COPY: Record<"day_30" | "day_5" | "day_10", { subjectPrefix: string; timing: string; urgent?: boolean }> = {
-  day_30: { subjectPrefix: "Reminder", timing: "is due for payment" },
-  day_5: { subjectPrefix: "Overdue", timing: "is now overdue" },
-  day_10: { subjectPrefix: "Final notice", timing: "is now significantly overdue", urgent: true },
+const REMINDER_CHECKPOINT_LABEL: Record<"day_30" | "day_5" | "day_10", string> = {
+  day_30: "30th (due)",
+  day_5: "5th (overdue)",
+  day_10: "10th (final notice)",
 };
 
-export function paymentReminderEmail(params: {
-  companyName: string;
+export interface ReminderReviewItem {
+  accountNumber: string;
   customerName: string;
   invoiceNumber: string;
   balanceDue: number;
   dueDate: string;
-  currency: string;
+}
+
+/**
+ * Safety gate: reminders are never emailed to clients directly. Instead,
+ * whoever's in arrears at a given checkpoint gets listed in one digest to a
+ * human (company_settings.reminder_review_email) who decides who actually
+ * gets reminded, and how.
+ */
+export function paymentReminderReviewEmail(params: {
+  companyName: string;
   checkpoint: "day_30" | "day_5" | "day_10";
+  currency: string;
+  items: ReminderReviewItem[];
 }): EmailContent {
-  const { companyName, customerName, invoiceNumber, balanceDue, dueDate, currency, checkpoint } = params;
-  const { subjectPrefix, timing, urgent } = REMINDER_CHECKPOINT_COPY[checkpoint];
+  const { companyName, checkpoint, currency, items } = params;
+  const label = REMINDER_CHECKPOINT_LABEL[checkpoint];
+
+  const rows = items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5;">${escapeHtml(item.accountNumber || "—")}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5;">${escapeHtml(item.customerName)}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5;">${escapeHtml(item.invoiceNumber)}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5; text-align: right;">${formatCurrency(item.balanceDue, currency)}</td>
+        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5; text-align: right;">${new Date(item.dueDate).toLocaleDateString("en-ZA")}</td>
+      </tr>`
+    )
+    .join("");
 
   return {
-    subject: `${subjectPrefix}: Invoice ${invoiceNumber} from ${companyName}`,
+    subject: `Payment reminder review — ${items.length} client${items.length === 1 ? "" : "s"} in arrears (${label})`,
     html: layout(
       companyName,
       `
-      <p>Dear ${escapeHtml(customerName)},</p>
-      <p>This is a reminder that invoice <strong>${escapeHtml(invoiceNumber)}</strong> ${timing}.</p>
-      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-        <tr><td style="padding: 4px 0; color: #555;">Amount due</td><td style="text-align: right; font-weight: bold;">${formatCurrency(balanceDue, currency)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #555;">Due date</td><td style="text-align: right;">${new Date(dueDate).toLocaleDateString("en-ZA")}</td></tr>
+      <p>The following ${items.length === 1 ? "client is" : "clients are"} in arrears as of the
+      <strong>${label}</strong> checkpoint. Nothing has been emailed to them automatically — review and
+      send reminders manually where appropriate.</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px;">
+        <tr>
+          <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #1a1a1a;">Account No.</th>
+          <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #1a1a1a;">Customer</th>
+          <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #1a1a1a;">Invoice</th>
+          <th style="padding: 6px 8px; text-align: right; border-bottom: 2px solid #1a1a1a;">Amount due</th>
+          <th style="padding: 6px 8px; text-align: right; border-bottom: 2px solid #1a1a1a;">Due date</th>
+        </tr>
+        ${rows}
       </table>
-      <p>Please arrange payment at your earliest convenience${urgent ? " to avoid any interruption to your service" : ""}.</p>
       `
     ),
   };
 }
 
 /**
- * Internal notice (not sent to the customer) after the final reminder
- * checkpoint if an invoice is still unpaid — for the accounts/admin team to
- * review the account for suspension. Distinct from paymentReminderEmail's
- * "day_10" copy, which the customer sees.
+ * A separate, more urgent internal notice after the final reminder
+ * checkpoint if an invoice is still unpaid — for the accounts/admin team
+ * to review the account for suspension. Distinct from the general
+ * paymentReminderReviewEmail digest: this one flags a single invoice that's
+ * gone all the way to the final checkpoint with no payment.
  */
 export function accountBlockNoticeEmail(params: {
   companyName: string;

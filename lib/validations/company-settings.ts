@@ -55,5 +55,9 @@ export const invoiceSettingsSchema = z.object({
   accounts_notification_email: z
     .union([z.literal(""), z.string().trim().email()])
     .transform((value) => (value === "" ? null : value)),
+  /** Where payment reminder checkpoint digests go for human review - reminders are never emailed to clients directly. */
+  reminder_review_email: z
+    .union([z.literal(""), z.string().trim().email()])
+    .transform((value) => (value === "" ? null : value)),
 });
 export type InvoiceSettingsInput = z.infer<typeof invoiceSettingsSchema>;

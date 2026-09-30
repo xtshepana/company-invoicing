@@ -6,7 +6,7 @@ import { computeDocumentTotals } from "@/lib/documents";
 import { mapWithConcurrency } from "@/lib/concurrency";
 import { recordAuditLog } from "@/server/services/audit";
 import { sendEmail } from "@/server/services/email";
-import { recurringInvoiceGeneratedEmail, paymentReminderEmail, accountBlockNoticeEmail } from "@/lib/email/templates";
+import { recurringInvoiceGeneratedEmail, paymentReminderReviewEmail, accountBlockNoticeEmail } from "@/lib/email/templates";
 import { InvoicePdf } from "@/lib/pdf/invoice-pdf";
 import { PAYMENT_REMINDER_CHECKPOINTS } from "@/lib/config/defaults";
 import type { LineItemInput } from "@/lib/validations/line-items";
@@ -37,7 +37,7 @@ interface GenerationResult {
 type ReminderCheckpoint = "day_30" | "day_5" | "day_10";
 
 interface ReminderResult {
-  invoiceId: string;
+  invoiceId: string | null;
   checkpoint: ReminderCheckpoint;
   status: "sent" | "error";
   error?: string;
@@ -265,17 +265,20 @@ type InvoiceForReminder = {
   invoice_number: string;
   due_date: string;
   balance_due: number | null;
-  customers: { email: string; company_name: string } | null;
+  customers: { email: string; company_name: string; customer_reference: string | null } | null;
 };
 
 /**
- * Fixed calendar-date reminders (see PAYMENT_REMINDER_CHECKPOINTS), not
- * relative to each invoice's own due date — so this queries every
- * currently-unpaid, already-issued invoice in the system on the days that
- * match a checkpoint, rather than filtering by due_date. A draft invoice is
- * excluded: it hasn't actually been sent to the customer yet, so reminding
- * them about it would be confusing (see the "Bill To" letterhead work for
- * the same reasoning applied elsewhere).
+ * Safety gate: reminders are never emailed to clients directly. On each
+ * fixed calendar-date checkpoint (see PAYMENT_REMINDER_CHECKPOINTS), every
+ * currently-unpaid, already-issued invoice (drafts excluded — they haven't
+ * actually been sent to the customer yet, so reminding them would be
+ * confusing) gets flagged, and everyone newly flagged this run is listed
+ * in one digest to a human (company_settings.reminder_review_email) with
+ * their account numbers, who decides who actually gets reminded and how.
+ * If that email isn't configured, flagging still happens (so the final
+ * checkpoint's block notice still works) but no digest is sent - reminders
+ * are simply held back, never falling back to emailing clients directly.
  */
 async function sendDueReminders(admin: AdminClient, settings: CompanySettings, today: string): Promise<ReminderResult[]> {
   const todayDate = new Date(`${today}T00:00:00Z`);
@@ -286,16 +289,25 @@ async function sendDueReminders(admin: AdminClient, settings: CompanySettings, t
 
   const { data: candidates } = await admin
     .from("invoices")
-    .select("id, invoice_number, due_date, balance_due, status, customers(email, company_name)")
+    .select("id, invoice_number, due_date, balance_due, status, customers(email, company_name, customer_reference)")
     .gt("balance_due", 0)
     .not("status", "in", "(draft,cancelled,void)");
 
   const results: ReminderResult[] = [];
   for (const checkpoint of activeCheckpoints) {
-    const checkpointResults = await mapWithConcurrency(candidates ?? [], EMAIL_CONCURRENCY, (invoice) =>
-      sendOneReminder(admin, settings, invoice, checkpoint, periodMonth)
-    );
-    results.push(...checkpointResults.filter((r): r is ReminderResult => r !== null));
+    const flagged = await flagNewlyDueReminders(admin, candidates ?? [], checkpoint.checkpoint, periodMonth);
+    results.push(...flagged.map((invoice) => ({ invoiceId: invoice.id, checkpoint: checkpoint.checkpoint, status: "sent" as const })));
+
+    if (flagged.length > 0 && settings.reminder_review_email) {
+      const digestResult = await sendReminderReviewDigest(settings, flagged, checkpoint.checkpoint);
+      if (digestResult) results.push(digestResult);
+    }
+
+    if (checkpoint.isFinal) {
+      await mapWithConcurrency(flagged, EMAIL_CONCURRENCY, (invoice) =>
+        sendAccountBlockNoticeIfConfigured(admin, settings, invoice, periodMonth)
+      );
+    }
   }
   return results;
 }
@@ -306,63 +318,60 @@ function isPaymentCheckpointDay(today: Date, checkpointDay: number): boolean {
   return today.getUTCDate() === Math.min(checkpointDay, daysInMonth);
 }
 
-async function sendOneReminder(
+/** Records the checkpoint per invoice (deduping against re-runs this month) and returns just the ones newly flagged by this call. */
+async function flagNewlyDueReminders(
   admin: AdminClient,
-  settings: CompanySettings,
-  invoice: InvoiceForReminder,
-  checkpoint: (typeof PAYMENT_REMINDER_CHECKPOINTS)[number],
+  candidates: InvoiceForReminder[],
+  checkpoint: ReminderCheckpoint,
   periodMonth: string
-): Promise<ReminderResult | null> {
-  const customer = invoice.customers;
-  if (!customer?.email) return null;
-
-  const { error: insertError } = await admin
-    .from("payment_checkpoints_sent")
-    .insert({ invoice_id: invoice.id, checkpoint: checkpoint.checkpoint, period_month: periodMonth });
-  if (insertError) {
-    // Unique violation means this checkpoint already fired for this invoice this month — skip silently, not an error.
-    return null;
-  }
-
-  try {
-    const content = paymentReminderEmail({
-      companyName: settings.company_name,
-      customerName: customer.company_name,
-      invoiceNumber: invoice.invoice_number,
-      balanceDue: invoice.balance_due ?? 0,
-      dueDate: invoice.due_date,
-      currency: settings.default_currency,
-      checkpoint: checkpoint.checkpoint,
-    });
-
-    await sendEmail({
-      to: customer.email,
-      ...content,
-      emailType: "payment_reminder",
-      entity: "invoices",
-      entityId: invoice.id,
-    });
+): Promise<InvoiceForReminder[]> {
+  const flags = await mapWithConcurrency(candidates, GENERATION_CONCURRENCY, async (invoice) => {
+    const { error } = await admin
+      .from("payment_checkpoints_sent")
+      .insert({ invoice_id: invoice.id, checkpoint, period_month: periodMonth });
+    // Unique violation means this checkpoint already fired for this invoice this month — not newly flagged, not an error.
+    if (error) return null;
 
     await recordAuditLog({
       userId: null,
-      action: "invoice.reminder_sent",
+      action: "invoice.reminder_flagged_for_review",
       entity: "invoices",
       entityId: invoice.id,
-      newValue: { checkpoint: checkpoint.checkpoint },
+      newValue: { checkpoint },
+    });
+    return invoice;
+  });
+  return flags.filter((invoice): invoice is InvoiceForReminder => invoice !== null);
+}
+
+async function sendReminderReviewDigest(
+  settings: CompanySettings,
+  flagged: InvoiceForReminder[],
+  checkpoint: ReminderCheckpoint
+): Promise<ReminderResult | null> {
+  try {
+    const content = paymentReminderReviewEmail({
+      companyName: settings.company_name,
+      checkpoint,
+      currency: settings.default_currency,
+      items: flagged.map((invoice) => ({
+        accountNumber: invoice.customers?.customer_reference ?? "",
+        customerName: invoice.customers?.company_name ?? "Unknown customer",
+        invoiceNumber: invoice.invoice_number,
+        balanceDue: invoice.balance_due ?? 0,
+        dueDate: invoice.due_date,
+      })),
     });
 
-    if (checkpoint.isFinal) {
-      await sendAccountBlockNoticeIfConfigured(admin, settings, invoice, periodMonth);
-    }
-
-    return { invoiceId: invoice.id, checkpoint: checkpoint.checkpoint, status: "sent" };
+    await sendEmail({
+      to: settings.reminder_review_email!,
+      ...content,
+      emailType: "payment_reminder_review",
+      entity: "invoices",
+    });
+    return null;
   } catch (err) {
-    return {
-      invoiceId: invoice.id,
-      checkpoint: checkpoint.checkpoint,
-      status: "error",
-      error: err instanceof Error ? err.message : "Unknown error.",
-    };
+    return { invoiceId: null, checkpoint, status: "error", error: err instanceof Error ? err.message : "Unknown error." };
   }
 }
 
