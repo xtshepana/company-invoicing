@@ -199,6 +199,7 @@ export type Database = {
           quote_next_number: number
           quote_prefix: string
           registration_number: string
+          reminder_review_email: string | null
           show_company_name: boolean
           trading_name: string
           updated_at: string
@@ -238,6 +239,7 @@ export type Database = {
           quote_next_number?: number
           quote_prefix?: string
           registration_number?: string
+          reminder_review_email?: string | null
           show_company_name?: boolean
           trading_name?: string
           updated_at?: string
@@ -277,6 +279,7 @@ export type Database = {
           quote_next_number?: number
           quote_prefix?: string
           registration_number?: string
+          reminder_review_email?: string | null
           show_company_name?: boolean
           trading_name?: string
           updated_at?: string

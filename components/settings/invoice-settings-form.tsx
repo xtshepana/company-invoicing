@@ -140,7 +140,21 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
             checked={remindersEnabled}
             onCheckedChange={setRemindersEnabled}
           />
-          <Label htmlFor="payment_reminders_enabled">Send automatic payment reminder emails</Label>
+          <Label htmlFor="payment_reminders_enabled">Send payment reminder digests</Label>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="reminder_review_email">Reminder review email</Label>
+          <Input
+            id="reminder_review_email"
+            name="reminder_review_email"
+            type="email"
+            defaultValue={settings.reminder_review_email ?? ""}
+            placeholder="you@yourcompany.co.za"
+          />
+          <p className="text-xs text-muted-foreground">
+            On the 30th, 5th, and 10th, a digest of everyone in arrears (with account numbers) goes here for
+            review — reminders are never emailed to clients directly. Left blank, nothing is sent at all.
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="accounts_notification_email">Accounts notification email</Label>

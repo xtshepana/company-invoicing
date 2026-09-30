@@ -65,6 +65,7 @@ export const getCompanySettings = cache(async (): Promise<CompanySettings> => {
       pdf_template: "classic",
       show_company_name: true,
       accounts_notification_email: null,
+      reminder_review_email: null,
       updated_at: now,
     };
   }
