@@ -5,7 +5,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
-import { getCompanySettings } from "@/lib/config/system-settings";
+import { getPublicCompanySettings } from "@/lib/config/system-settings";
 import { sendEmail } from "@/server/services/email";
 import { clientMagicLinkEmail } from "@/lib/email/templates";
 
@@ -90,10 +90,14 @@ export async function requestClientMagicLink(email: string): Promise<void> {
   });
   if (error) return;
 
-  const settings = await getCompanySettings();
+  // getPublicCompanySettings(), not getCompanySettings() - this runs for an
+  // unauthenticated customer with no Supabase session, so the RLS-scoped
+  // getter would silently fall back to SETTINGS_DEFAULTS instead of the
+  // real company name (same bug class as the EMAIL_FROM sender-name fix).
+  const settings = await getPublicCompanySettings();
   const env = getServerEnv();
   const content = clientMagicLinkEmail({
-    companyName: settings.company_name,
+    companyName: settings.companyName,
     loginUrl: `${env.APP_URL}/client/verify?token=${token}`,
     expiresInMinutes: MAGIC_LINK_TTL_MINUTES,
   });
@@ -103,7 +107,7 @@ export async function requestClientMagicLink(email: string): Promise<void> {
     ...content,
     emailType: "client_magic_link",
     entity: "customers",
-    fromName: settings.company_name,
+    fromName: settings.companyName,
   });
 }
 
