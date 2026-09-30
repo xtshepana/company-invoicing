@@ -140,6 +140,30 @@ export function creditNoteIssuedEmail(params: {
 }
 
 /**
+ * The client portal's entire sign-in flow - no password, just this link.
+ * See server/services/client-auth.ts requestClientMagicLink(). The link
+ * itself carries the one-time token; there's nothing to type.
+ */
+export function clientMagicLinkEmail(params: {
+  companyName: string;
+  loginUrl: string;
+  expiresInMinutes: number;
+}): EmailContent {
+  const { companyName, loginUrl, expiresInMinutes } = params;
+  return {
+    subject: `Your sign-in link for ${companyName}`,
+    html: layout(
+      companyName,
+      `
+      <p>Use the link below to sign in to your client portal.</p>
+      <p><a href="${escapeHtml(loginUrl)}" style="display: inline-block; padding: 10px 20px; background: #1a1a1a; color: #ffffff; text-decoration: none; border-radius: 4px;">Sign in</a></p>
+      <p style="color: #555; font-size: 13px;">This link expires in ${expiresInMinutes} minutes and can only be used once. If you didn't request it, you can safely ignore this email.</p>
+      `
+    ),
+  };
+}
+
+/**
  * Sent directly to the customer, but only ever on demand - a staff member
  * clicking "Send Reminder" on the invoice page (see sendPaymentReminderAction
  * in server/actions/invoice-actions.ts). Distinct from the automatic
