@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local-only database backups (contains real customer/financial data - never commit)
+/db/backups/
