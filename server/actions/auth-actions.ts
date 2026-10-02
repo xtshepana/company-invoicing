@@ -54,7 +54,7 @@ export async function loginAction(_prev: ActionResult, formData: FormData): Prom
   redirect("/dashboard");
 }
 
-export async function logoutAction(): Promise<void> {
+async function signOutAndLog(auditAction: "user.logout" | "user.logout_idle"): Promise<void> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -63,10 +63,19 @@ export async function logoutAction(): Promise<void> {
   await supabase.auth.signOut();
 
   if (user) {
-    await recordAuditLog({ userId: user.id, action: "user.logout", entity: "auth", entityId: user.id });
+    await recordAuditLog({ userId: user.id, action: auditAction, entity: "auth", entityId: user.id });
   }
+}
 
+export async function logoutAction(): Promise<void> {
+  await signOutAndLog("user.logout");
   redirect("/login");
+}
+
+/** Called by components/layout/idle-logout.tsx once the inactivity timer runs out. */
+export async function idleLogoutAction(): Promise<void> {
+  await signOutAndLog("user.logout_idle");
+  redirect("/login?idle=1");
 }
 
 export async function forgotPasswordAction(

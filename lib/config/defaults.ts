@@ -18,6 +18,15 @@ export const SETTINGS_DEFAULTS = {
 } as const;
 
 /**
+ * Staff are signed out after this long with no mouse/keyboard/touch
+ * activity in any open tab (see components/layout/idle-logout.tsx), with a
+ * warning for the last IDLE_WARNING_SECONDS first. Client-side only - it
+ * protects an unattended PC, it isn't a server-enforced session limit.
+ */
+export const IDLE_TIMEOUT_MINUTES = 15;
+export const IDLE_WARNING_SECONDS = 60;
+
+/**
  * Fixed calendar days-of-month at which every currently-unpaid invoice gets
  * a payment reminder — not relative to each invoice's own due date, since
  * this business's billing cycle is monthly and due dates cluster around

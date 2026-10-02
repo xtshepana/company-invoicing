@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/server/services/auth";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { AppShell } from "@/components/layout/app-shell";
+import { IdleLogout } from "@/components/layout/idle-logout";
 import { HEX_COLOR_PATTERN, readableTextColor } from "@/lib/color-utils";
 import { maybeTriggerDailyCron } from "@/lib/cron-trigger";
 
@@ -30,6 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <>
+      <IdleLogout />
       {brandColor ? (
         <style>{`
           :root, .dark {

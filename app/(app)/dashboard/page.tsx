@@ -51,6 +51,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 const ACTION_LABELS: Record<string, string> = {
   "user.login": "signed in",
   "user.logout": "signed out",
+  "user.logout_idle": "was signed out after inactivity",
   "user.password_reset": "reset their password",
   "user.password_changed": "changed their password",
   "user.invited": "invited a new user",
