@@ -3,11 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { idleLogoutAction } from "@/server/actions/auth-actions";
-import { IDLE_TIMEOUT_MINUTES, IDLE_WARNING_SECONDS } from "@/lib/config/defaults";
+import { getIdleState } from "@/lib/idle";
 
 const STORAGE_KEY = "idle-logout:last-activity";
-const TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60_000;
-const WARNING_MS = IDLE_WARNING_SECONDS * 1000;
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"] as const;
 
 function readSharedActivity(): number {
@@ -55,16 +53,16 @@ export function IdleLogout() {
 
     const timer = window.setInterval(() => {
       lastActivityRef.current = Math.max(lastActivityRef.current, readSharedActivity());
-      const remaining = TIMEOUT_MS - (Date.now() - lastActivityRef.current);
+      const state = getIdleState(Date.now(), lastActivityRef.current);
 
-      if (remaining <= 0) {
+      if (state.status === "expired") {
         if (!signedOutRef.current) {
           signedOutRef.current = true;
           void idleLogoutAction();
         }
         return;
       }
-      setSecondsLeft(remaining <= WARNING_MS ? Math.ceil(remaining / 1000) : null);
+      setSecondsLeft(state.status === "warning" ? state.secondsLeft : null);
     }, 1000);
 
     return () => {
