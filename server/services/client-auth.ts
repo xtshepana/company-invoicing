@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
 import { getPublicCompanySettings } from "@/lib/config/system-settings";
+import { CLIENT_PORTAL_ENABLED } from "@/lib/config/defaults";
 import { sendEmail } from "@/server/services/email";
 import { clientMagicLinkEmail } from "@/lib/email/templates";
 
@@ -57,6 +58,8 @@ function escapeLikePattern(value: string): string {
  * which addresses have an account.
  */
 export async function requestClientMagicLink(email: string): Promise<void> {
+  if (!CLIENT_PORTAL_ENABLED) return;
+
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail) return;
 
@@ -119,6 +122,8 @@ export async function requestClientMagicLink(email: string): Promise<void> {
  * deliberately without distinguishing which.
  */
 export async function verifyClientMagicLink(token: string): Promise<ClientSession | null> {
+  if (!CLIENT_PORTAL_ENABLED) return null;
+
   const admin = createAdminSupabaseClient();
 
   const { data: link } = await admin
@@ -161,6 +166,8 @@ export async function verifyClientMagicLink(token: string): Promise<ClientSessio
  * getCurrentProfile() for staff.
  */
 export const getClientSession = cache(async (): Promise<ClientSession | null> => {
+  if (!CLIENT_PORTAL_ENABLED) return null;
+
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
