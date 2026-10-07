@@ -5,6 +5,12 @@ import { getPublicCompanySettings } from "@/lib/config/system-settings";
 import { clientLogoutAction } from "@/server/actions/client-portal-actions";
 import { Button } from "@/components/ui/button";
 
+// Every page here depends on the visitor's session cookie, so none of it can
+// be prerendered at build time - without this, a build where the session
+// lookup short-circuits (e.g. the portal switched off) tries to prerender
+// /client and fails on the signed-in check.
+export const dynamic = "force-dynamic";
+
 /**
  * Not covered by proxy.ts's PROTECTED_PREFIXES (that matcher is staff-only
  * - see CLAUDE.md architecture rule 7) - a customer isn't a Supabase Auth
