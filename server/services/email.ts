@@ -4,6 +4,7 @@ import { getResendClient } from "@/lib/email/resend-client";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env";
 import type { EmailContent } from "@/lib/email/templates";
+import { resolveCc } from "@/lib/email/cc";
 
 export interface SendEmailParams extends EmailContent {
   to: string;
@@ -11,6 +12,8 @@ export interface SendEmailParams extends EmailContent {
   entity: string;
   entityId?: string;
   attachment?: { filename: string; content: Buffer };
+  /** Optional copy (CC) for the accounts mailbox - dropped if it is the same address as `to`. */
+  cc?: string | null;
   /** Shown as the sender's display name (e.g. the company name) instead of whatever's baked into EMAIL_FROM. */
   fromName?: string;
 }
@@ -53,6 +56,7 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
     const { error } = await resend.emails.send({
       from: buildFromHeader(env.EMAIL_FROM, params.fromName),
       to: params.to,
+      cc: resolveCc(params.to, params.cc),
       subject: params.subject,
       html: params.html,
       attachments: params.attachment

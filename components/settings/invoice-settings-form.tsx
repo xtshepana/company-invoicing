@@ -166,8 +166,9 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
             placeholder="accounts@yourcompany.co.za"
           />
           <p className="text-xs text-muted-foreground">
-            Gets an internal notice when a customer still hasn&apos;t paid after the final reminder, so the
-            account can be reviewed for suspension.
+            Gets a copy (CC) of every invoice, quote, credit note, receipt and payment reminder sent to a
+            customer, plus an internal notice when a customer still hasn&apos;t paid after the final reminder,
+            so the account can be reviewed for suspension. Left blank, no copies are sent.
           </p>
         </div>
       </div>
