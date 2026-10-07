@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requestClientMagicLink, requireClientSession, logoutClient } from "@/server/services/client-auth";
 import { respondToClientQuote } from "@/server/services/client-portal";
 import { clientLoginSchema, quoteResponseSchema } from "@/lib/validations/client-portal";
+import { CLIENT_PORTAL_ENABLED } from "@/lib/config/defaults";
 import type { ActionResult } from "@/server/actions/auth-actions";
 
 /**
@@ -14,6 +15,8 @@ import type { ActionResult } from "@/server/actions/auth-actions";
  * portal access.
  */
 export async function requestClientLoginAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  if (!CLIENT_PORTAL_ENABLED) return { error: "Client sign-in isn't available yet." };
+
   const parsed = clientLoginSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };

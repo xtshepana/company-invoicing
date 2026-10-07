@@ -18,6 +18,17 @@ export const SETTINGS_DEFAULTS = {
 } as const;
 
 /**
+ * Master switch for the client portal's sign-in (see server/services/client-auth.ts
+ * and app/client/login/page.tsx). Off for now: the emailed magic link is
+ * built from SITE_URL and that has been resolving to the host's internal
+ * 0.0.0.0:3000 address, so a customer who requested a link would get one
+ * that doesn't open. Flip to true once links point at the real domain.
+ * While off, no sign-in email is sent, no link is accepted, and any
+ * existing client session stops working.
+ */
+export const CLIENT_PORTAL_ENABLED = false as boolean;
+
+/**
  * Staff are signed out after this long with no mouse/keyboard/touch
  * activity in any open tab (see components/layout/idle-logout.tsx), with a
  * warning for the last IDLE_WARNING_SECONDS first. Client-side only - it
