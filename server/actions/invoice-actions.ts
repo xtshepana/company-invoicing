@@ -212,6 +212,7 @@ async function sendInvoiceSentEmail(invoiceId: string): Promise<boolean> {
     entity: "invoices",
     entityId: invoiceId,
     attachment: { filename: `${invoice.invoice_number}.pdf`, content: pdfBuffer },
+    cc: settings.accounts_notification_email,
     fromName: settings.company_name,
   });
   return true;
@@ -262,6 +263,7 @@ export async function sendPaymentReminderAction(_prev: ActionResult, formData: F
     emailType: "payment_reminder_manual",
     entity: "invoices",
     entityId: id,
+    cc: settings.accounts_notification_email,
     fromName: settings.company_name,
   });
 

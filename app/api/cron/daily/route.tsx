@@ -257,6 +257,7 @@ async function emailGeneratedInvoice(
     entity: "invoices",
     entityId: invoiceId,
     attachment: { filename: `${invoice.invoice_number}.pdf`, content: Buffer.from(pdfBuffer) },
+    cc: settings.accounts_notification_email,
     fromName: settings.company_name,
   });
 }
