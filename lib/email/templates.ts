@@ -295,3 +295,29 @@ export function accountBlockNoticeEmail(params: {
     ),
   };
 }
+
+/**
+ * A customer notice written in the Notices tab (e.g. a company name or
+ * banking details change). `bodyHtml` is already escaped HTML from
+ * renderNoticeBodyHtml (lib/notices.ts) - never pass raw text here. Sent to
+ * each customer individually, so no one sees anyone else's address.
+ */
+export function customerNoticeEmail(params: {
+  companyName: string;
+  customerName: string;
+  subject: string;
+  bodyHtml: string;
+}): EmailContent {
+  const { companyName, customerName, subject, bodyHtml } = params;
+  return {
+    subject,
+    html: layout(
+      companyName,
+      `
+      <p>Dear ${escapeHtml(customerName)},</p>
+      ${bodyHtml}
+      <p>Kind regards,<br>${escapeHtml(companyName)}</p>
+      `
+    ),
+  };
+}

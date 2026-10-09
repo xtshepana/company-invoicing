@@ -14,6 +14,7 @@ import {
   FileMinus,
   BarChart3,
   Truck,
+  Megaphone,
 } from "lucide-react";
 import type { StaffModule } from "@/server/services/auth";
 
@@ -43,6 +44,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/suppliers", label: "Suppliers", icon: Truck, module: "suppliers" },
   { href: "/expenses", label: "Expenses", icon: Receipt, module: "suppliers" },
   { href: "/reports", label: "Reports", icon: BarChart3, module: "reports" },
+  { href: "/notices", label: "Notices", icon: Megaphone, adminOnly: true },
   { href: "/settings", label: "Settings", icon: Settings, adminOnly: true },
   { href: "/users", label: "Users", icon: Users, adminOnly: true },
   { href: "/audit-log", label: "Audit Log", icon: ScrollText, adminOnly: true },

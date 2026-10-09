@@ -17,6 +17,7 @@ const PROTECTED_PREFIXES = [
   "/settings",
   "/users",
   "/audit-log",
+  "/notices",
 ];
 
 /**
