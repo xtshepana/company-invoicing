@@ -578,6 +578,56 @@ export type Database = {
           },
         ]
       }
+      customer_notices: {
+        Row: {
+          body: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          failed_count: number
+          id: string
+          recipient_count: number
+          send_token: string
+          sent_count: number
+          status: string
+          subject: string
+        }
+        Insert: {
+          body: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          recipient_count?: number
+          send_token: string
+          sent_count?: number
+          status?: string
+          subject: string
+        }
+        Update: {
+          body?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          recipient_count?: number
+          send_token?: string
+          sent_count?: number
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address_physical: string

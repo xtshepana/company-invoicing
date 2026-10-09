@@ -25,19 +25,27 @@ function buildFromHeader(emailFrom: string, fromName?: string): string {
   return `${fromName} <${address}>`;
 }
 
+export interface SendEmailResult {
+  status: "sent" | "failed" | "skipped";
+  error?: string;
+}
+
 /**
  * Sends one transactional email and always records the attempt in
  * email_logs (via the service-role client — there is no insert policy for
  * the authenticated role on that table, matching the audit_logs pattern).
  * Never throws: a failed or skipped send should not fail the caller's
  * larger operation (e.g. generating a recurring invoice must succeed even
- * if the email bounces or Resend isn't configured).
+ * if the email bounces or Resend isn't configured). The outcome is also
+ * returned so callers that need it (e.g. counting a notice's deliveries)
+ * don't have to re-read the log; everyone else can ignore it.
  */
-export async function sendEmail(params: SendEmailParams): Promise<void> {
+export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   const admin = createAdminSupabaseClient();
   const resend = getResendClient();
 
   if (!resend || !params.to) {
+    const error = !resend ? "RESEND_API_KEY is not configured." : "Customer has no email address on file.";
     await admin.from("email_logs").insert({
       email_type: params.emailType,
       recipient: params.to || "(no email on file)",
@@ -45,9 +53,9 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
       entity: params.entity,
       entity_id: params.entityId ?? null,
       status: "skipped",
-      error: !resend ? "RESEND_API_KEY is not configured." : "Customer has no email address on file.",
+      error,
     });
-    return;
+    return { status: "skipped", error };
   }
 
   const env = getServerEnv();
@@ -74,7 +82,7 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
         status: "failed",
         error: error.message,
       });
-      return;
+      return { status: "failed", error: error.message };
     }
 
     await admin.from("email_logs").insert({
@@ -85,7 +93,9 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
       entity_id: params.entityId ?? null,
       status: "sent",
     });
+    return { status: "sent" };
   } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error.";
     await admin.from("email_logs").insert({
       email_type: params.emailType,
       recipient: params.to,
@@ -93,7 +103,8 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
       entity: params.entity,
       entity_id: params.entityId ?? null,
       status: "failed",
-      error: err instanceof Error ? err.message : "Unknown error.",
+      error: message,
     });
+    return { status: "failed", error: message };
   }
 }
