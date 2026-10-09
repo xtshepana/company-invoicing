@@ -81,7 +81,6 @@ export function NoticeComposer({ recipients, unreachable, company, adminEmail, s
     };
     const content = customerNoticeEmail({
       companyName: company.name,
-      customerName: vars.customerName,
       subject: renderNoticeSubject(subject || "(no subject yet)", vars),
       bodyHtml: renderNoticeBodyHtml(body || "(Your message will appear here.)", vars),
     });
@@ -166,8 +165,8 @@ export function NoticeComposer({ recipients, unreachable, company, adminEmail, s
           <CardHeader>
             <CardTitle>Message</CardTitle>
             <CardDescription>
-              Each customer gets their own email, opening with &quot;Dear &lt;their name&gt;,&quot; and signed
-              from {company.name}.
+              Each customer gets their own email, signed from {company.name}. Start with your own greeting - for
+              example &quot;Dear {"{customer_name}"},&quot; or &quot;Dear Kati Technologies customers,&quot;.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

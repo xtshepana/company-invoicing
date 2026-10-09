@@ -161,17 +161,30 @@ describe("renderNoticeBodyHtml", () => {
 });
 
 describe("customerNoticeEmail", () => {
-  it("greets the customer and signs off from the company", () => {
+  it("sends exactly the written message and signs off from the company, with no automatic greeting", () => {
     const { subject, html } = customerNoticeEmail({
       companyName: "THETHA TELECOM (PTY)LTD",
-      customerName: "Acme <b>Attorneys</b>",
       subject: "Important update",
-      bodyHtml: "<p>Body</p>",
+      bodyHtml: "<p>Dear Kati Technologies customers,</p>\n<p>Body</p>",
     });
     expect(subject).toBe("Important update");
-    expect(html).toContain("Dear Acme &lt;b&gt;Attorneys&lt;/b&gt;,");
+    expect(html).toContain("<p>Dear Kati Technologies customers,</p>");
     expect(html).toContain("<p>Body</p>");
     expect(html).toContain("Kind regards,<br>THETHA TELECOM (PTY)LTD");
+    expect(html.match(/Dear /g)).toHaveLength(1);
+  });
+});
+
+describe("the banking change template's greeting", () => {
+  it("opens with the group greeting, not a per-customer name", () => {
+    const html = renderNoticeBodyHtml(BANKING_CHANGE_TEMPLATE.body, vars);
+    expect(html.startsWith("<p>Dear Kati Technologies customers,</p>")).toBe(true);
+    expect(html).not.toContain("Acme Attorneys");
+  });
+
+  it("still lets a notice greet each customer by name", () => {
+    const html = renderNoticeBodyHtml("Dear {customer_name},\n\nHello.", vars);
+    expect(html.startsWith("<p>Dear Acme Attorneys,</p>")).toBe(true);
   });
 });
 
