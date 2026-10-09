@@ -132,7 +132,6 @@ function varsFor(company: NoticeCompany, customerName: string, accountNumber: st
 function buildEmail(company: NoticeCompany, subject: string, body: string, vars: NoticeVars) {
   return customerNoticeEmail({
     companyName: company.name,
-    customerName: vars.customerName,
     subject: renderNoticeSubject(subject, vars),
     bodyHtml: renderNoticeBodyHtml(body, vars),
   });

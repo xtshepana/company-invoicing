@@ -39,7 +39,9 @@ export interface NoticeVars {
 
 export const BANKING_CHANGE_TEMPLATE = {
   subject: "Important: new company name and banking details - {company_name}",
-  body: `Please note that we have changed our company name and banking details. From now on, your services and invoices will come from {company_name}.
+  body: `Dear Kati Technologies customers,
+
+Please note that we have changed our company name and banking details. From now on, your services and invoices will come from {company_name}.
 
 Please update your records and make all future payments to the account below:
 
