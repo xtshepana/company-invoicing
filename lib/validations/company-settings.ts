@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { HEX_COLOR_PATTERN } from "@/lib/color-utils";
 
-export const PDF_TEMPLATES = ["classic", "modern", "minimal", "bold", "elegant"] as const;
+export const PDF_TEMPLATES = ["classic", "modern", "minimal", "bold", "elegant", "corporate"] as const;
 
 export const appearanceSchema = z.object({
   brand_color: z

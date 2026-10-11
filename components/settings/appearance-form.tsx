@@ -22,6 +22,7 @@ const TEMPLATE_DESCRIPTIONS: Record<(typeof PDF_TEMPLATES)[number], string> = {
   minimal: "Airy and understated, with a single accent rule.",
   bold: "A full-height colored sidebar carries the branding.",
   elegant: "Serif type and a centered masthead - timeless and formal.",
+  corporate: "A boxed, form-style layout: navy title bar, labelled panels and an orange items header.",
 };
 
 export function AppearanceForm({

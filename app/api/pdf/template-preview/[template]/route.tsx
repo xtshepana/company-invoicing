@@ -30,6 +30,7 @@ function sampleDocumentData(): DocumentData {
       accountNo: "SAM001",
       contactPerson: "Jane Dlamini",
       address: "12 Example Street, Sandton, 2196",
+      postalAddress: "PO Box 1234, Sandton, 2146",
       email: "accounts@samplecustomer.co.za",
       vatNumber: "4123456789",
     },
