@@ -7,6 +7,10 @@ export const appearanceSchema = z.object({
   brand_color: z
     .union([z.literal(""), z.string().trim().regex(HEX_COLOR_PATTERN, "Must be a hex color like #2563eb.")])
     .transform((value) => (value === "" ? null : value)),
+  /** The logo's second colour (set automatically when a logo is uploaded) - used by the Corporate template. */
+  brand_color_secondary: z
+    .union([z.literal(""), z.string().trim().regex(HEX_COLOR_PATTERN, "Must be a hex color like #2563eb.")])
+    .transform((value) => (value === "" ? null : value)),
   pdf_template: z.enum(PDF_TEMPLATES),
   /** Whether the company name text is shown on generated PDFs, alongside the logo - see show_company_name on company_settings. */
   show_company_name: z.boolean(),

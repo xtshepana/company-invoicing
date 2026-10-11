@@ -240,6 +240,7 @@ export type Database = {
           bank_branch_code: string
           bank_name: string
           brand_color: string | null
+          brand_color_secondary: string | null
           company_name: string
           credit_note_next_number: number
           credit_note_prefix: string
@@ -280,6 +281,7 @@ export type Database = {
           bank_branch_code?: string
           bank_name?: string
           brand_color?: string | null
+          brand_color_secondary?: string | null
           company_name?: string
           credit_note_next_number?: number
           credit_note_prefix?: string
@@ -320,6 +322,7 @@ export type Database = {
           bank_branch_code?: string
           bank_name?: string
           brand_color?: string | null
+          brand_color_secondary?: string | null
           company_name?: string
           credit_note_next_number?: number
           credit_note_prefix?: string
