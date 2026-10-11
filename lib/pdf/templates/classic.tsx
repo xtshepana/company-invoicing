@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
+import { documentTitle } from "@/lib/pdf/document-title";
 import { pdfStyles as s } from "@/lib/pdf/styles";
 import { formatCurrency } from "@/lib/money";
 import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
@@ -25,7 +26,7 @@ export function ClassicTemplate({ data, settings }: TemplateProps) {
             {settings.registration_number ? <Text style={s.small}>Reg No: {settings.registration_number}</Text> : null}
           </View>
           <View>
-            <Text style={s.docTitle}>{data.docTitle}</Text>
+            <Text style={s.docTitle}>{documentTitle(data.docKind, settings.vat_registered).toUpperCase()}</Text>
             {data.statusLabel ? <Text style={s.statusBadge}>{data.statusLabel}</Text> : null}
             {data.metaFields.map((field) => (
               <View key={field.label}>

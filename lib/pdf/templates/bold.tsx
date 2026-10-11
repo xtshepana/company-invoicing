@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { documentTitle } from "@/lib/pdf/document-title";
 import { formatCurrency } from "@/lib/money";
 import { readableTextColor } from "@/lib/color-utils";
 import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
@@ -79,7 +80,7 @@ export function BoldTemplate({ data, settings }: TemplateProps) {
           {settings.email ? <Text style={st.sidebarSmall}>{settings.email}</Text> : null}
           {settings.vat_number ? <Text style={st.sidebarSmall}>VAT No: {settings.vat_number}</Text> : null}
 
-          <Text style={st.sidebarDocTitle}>{data.docTitle}</Text>
+          <Text style={st.sidebarDocTitle}>{documentTitle(data.docKind, settings.vat_registered).toUpperCase()}</Text>
           <Text style={st.sidebarNumber}>{data.number}</Text>
           {data.statusLabel ? <Text style={st.sidebarStatus}>{data.statusLabel}</Text> : null}
         </View>
