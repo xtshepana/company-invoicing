@@ -72,6 +72,12 @@ const s = StyleSheet.create({
   totalsValue: { flexGrow: 1, flexBasis: 0, border: `0.75px solid ${BORDER}`, borderRadius: 3, justifyContent: "center", paddingHorizontal: 7, paddingVertical: 5, marginLeft: 4 },
   totalsText: { textAlign: "right", fontSize: 9 },
 
+  // Banking details: a dark band (heading + payment reference) over a lighter box, like a printed remittance block.
+  bankBand: { backgroundColor: BORDER, borderTopLeftRadius: 3, borderTopRightRadius: 3, paddingVertical: 5, paddingHorizontal: 8 },
+  bankBandText: { color: "#ffffff", fontFamily: "Helvetica-Bold", fontSize: 8.5, lineHeight: 1.4 },
+  bankBox: { backgroundColor: "#ececec", borderBottomLeftRadius: 3, borderBottomRightRadius: 3, borderWidth: 0.75, borderTopWidth: 0, borderStyle: "solid", borderColor: BORDER, paddingVertical: 6, paddingHorizontal: 8 },
+  bankName: { fontFamily: "Helvetica-Bold", fontSize: 9.5, marginBottom: 2 },
+
   sectionLabel: { backgroundColor: LABEL_BG, borderRadius: 3, paddingHorizontal: 7, paddingVertical: 4, marginBottom: 4, alignSelf: "flex-start" },
 });
 
@@ -283,15 +289,18 @@ export function CorporateTemplate({ data, settings }: TemplateProps) {
         <View style={[s.row, { marginTop: 10 }]} wrap={false}>
           <View style={{ flexGrow: 1, flexBasis: 0, marginRight: 12 }}>
             {data.docKind === "invoice" && settings.bank_name ? (
-              <View style={{ marginBottom: 8 }}>
-                <View style={s.sectionLabel}>
-                  <Text style={s.metaLabelText}>Banking Details</Text>
+              <View style={{ marginBottom: 8 }} wrap={false}>
+                <View style={s.bankBand}>
+                  <Text style={s.bankBandText}>Banking Details</Text>
+                  {customer.accountNo ? <Text style={s.bankBandText}>Payment Reference: {customer.accountNo}</Text> : null}
                 </View>
-                <Text style={s.line}>{settings.bank_name}</Text>
-                <Text style={s.line}>{settings.bank_account_name}</Text>
-                <Text style={s.line}>Acc No: {settings.bank_account_number}</Text>
-                <Text style={s.line}>Branch Code: {settings.bank_branch_code}</Text>
-                <Text style={s.line}>Account Type: {settings.bank_account_type}</Text>
+                <View style={s.bankBox}>
+                  <Text style={s.bankName}>{settings.bank_name}</Text>
+                  {settings.bank_account_name ? <Text style={s.line}>{settings.bank_account_name}</Text> : null}
+                  {settings.bank_account_type ? <Text style={s.line}>Account Type: {settings.bank_account_type}</Text> : null}
+                  {settings.bank_branch_code ? <Text style={s.line}>Branch Code: {settings.bank_branch_code}</Text> : null}
+                  {settings.bank_account_number ? <Text style={s.line}>Acc No: {settings.bank_account_number}</Text> : null}
+                </View>
               </View>
             ) : null}
             {data.notes ? (

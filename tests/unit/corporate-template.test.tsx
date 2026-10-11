@@ -216,6 +216,36 @@ describe("what the document shows", () => {
   });
 });
 
+describe("the banking details box", () => {
+  // The text walker puts each JSX text piece on its own line ("Acc No: " then the number); join a label to its value.
+  const flat = (data: DocumentData, overrides: Record<string, unknown> = {}) => text(data, overrides).replace(/: ?\n/g, ": ");
+
+  it("shows the heading, the customer's account number as the payment reference, and every banking line", () => {
+    const out = flat(invoice());
+    for (const expected of ["Banking Details", "Payment Reference: TOK003", "Test Bank", "Acme Trading", "Account Type: Business Cheque", "Branch Code: 250655", "Acc No: 1234567890"]) {
+      expect(out, expected).toContain(expected);
+    }
+  });
+
+  it("leaves out the payment reference when the customer has no account number", () => {
+    const out = flat(invoice({ customer: { ...customer, accountNo: "" } }));
+    expect(out).toContain("Banking Details");
+    expect(out).not.toContain("Payment Reference");
+  });
+
+  it("skips banking lines that are empty instead of printing a bare label", () => {
+    const out = flat(invoice(), { bank_account_type: "", bank_branch_code: "" });
+    expect(out).toContain("Acc No: 1234567890");
+    expect(out).not.toContain("Account Type:");
+    expect(out).not.toContain("Branch Code:");
+  });
+
+  it("is only on invoices, never on a quote or credit note", () => {
+    expect(flat(quote())).not.toContain("Payment Reference");
+    expect(flat(creditNote())).not.toContain("Payment Reference");
+  });
+});
+
 describe("rendering to a real PDF", () => {
   it("produces a valid, single-page PDF for each kind of document", async () => {
     for (const data of [invoice(), quote(), creditNote()]) {
