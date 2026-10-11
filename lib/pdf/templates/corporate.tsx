@@ -1,15 +1,17 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { documentTitle } from "@/lib/pdf/document-title";
+import { HEX_COLOR_PATTERN, readableTextColor, shadeColor } from "@/lib/color-utils";
 import { formatCurrency } from "@/lib/money";
 import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
 import type { DocumentData } from "@/lib/pdf/document-data";
 import type { TemplateProps } from "@/lib/pdf/templates/types";
 
 /*
- * "Corporate": a boxed, form-style layout - a navy title bar, bordered
- * company / customer / meta panels with grey labels, an orange items header,
- * and totals, banking and notes in the same box style. The palette is fixed
- * (like Classic) rather than driven by the company's brand color.
+ * "Corporate": a boxed, form-style layout - a coloured title bar, bordered
+ * company / customer / meta panels with grey labels, a coloured items header,
+ * and totals, banking and notes in the same box style. The two colours come
+ * from the company's brand colours (picked from the logo - see corporateColors);
+ * navy and orange are only the fallback when no brand colour is set.
  */
 const NAVY = "#00008b";
 const ORANGE = "#e0731e";
@@ -86,6 +88,29 @@ export function corporateTitle(docKind: DocumentData["docKind"], vatRegistered: 
   return documentTitle(docKind, vatRegistered);
 }
 
+export interface CorporateColors {
+  /** Title bar, continuation bar and the Total row. */
+  primary: string;
+  /** Items header and the Balance Due row. */
+  secondary: string;
+  onPrimary: string;
+  onSecondary: string;
+}
+
+const validHex = (value: string | null | undefined): string | null => (value && HEX_COLOR_PATTERN.test(value) ? value : null);
+
+/**
+ * The template's two colours. Primary is the company's brand colour and secondary its second logo colour; with only a
+ * primary the secondary is a darker shade of it (so the layout stays one family), and with neither it is the original
+ * navy and orange. Text on each colour is black or white, whichever reads better.
+ */
+export function corporateColors(settings: TemplateProps["settings"]): CorporateColors {
+  const brand = validHex(settings.brand_color);
+  const primary = brand ?? NAVY;
+  const secondary = validHex(settings.brand_color_secondary) ?? (brand ? shadeColor(brand, 0.35) : ORANGE);
+  return { primary, secondary, onPrimary: readableTextColor(primary), onSecondary: readableTextColor(secondary) };
+}
+
 function LabelValue({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
     <View style={[s.metaRow, last ? { marginBottom: 0 } : {}]}>
@@ -126,12 +151,13 @@ function StripCell({ label, value, last }: { label: string; value: string; last?
   );
 }
 
-function TotalsRow({ label, value, emphasis }: { label: string; value: string; emphasis?: "total" | "due" }) {
-  const filled = emphasis === "total" ? NAVY : emphasis === "due" ? ORANGE : null;
+function TotalsRow({ label, value, emphasis, colors }: { label: string; value: string; emphasis?: "total" | "due"; colors: CorporateColors }) {
+  const filled = emphasis === "total" ? colors.primary : emphasis === "due" ? colors.secondary : null;
+  const onFilled = emphasis === "total" ? colors.onPrimary : colors.onSecondary;
   return (
     <View style={[s.row, { marginBottom: 4 }]}>
       <View style={[s.totalsLabel, filled ? { backgroundColor: filled } : {}]}>
-        <Text style={[s.metaLabelText, filled ? { color: "#ffffff" } : {}]}>{label}</Text>
+        <Text style={[s.metaLabelText, filled ? { color: onFilled } : {}]}>{label}</Text>
       </View>
       <View style={[s.totalsValue, filled ? { borderColor: filled } : {}]}>
         <Text style={[s.totalsText, emphasis ? { fontFamily: "Helvetica-Bold" } : {}]}>{value}</Text>
@@ -143,6 +169,7 @@ function TotalsRow({ label, value, emphasis }: { label: string; value: string; e
 export function CorporateTemplate({ data, settings }: TemplateProps) {
   const currency = settings.default_currency;
   const title = corporateTitle(data.docKind, settings.vat_registered);
+  const colors = corporateColors(settings);
   const { customer } = data;
 
   // The first two meta fields are always the document number and its date (see document-data.ts);
@@ -161,8 +188,8 @@ export function CorporateTemplate({ data, settings }: TemplateProps) {
           fixed
           render={({ pageNumber }) =>
             pageNumber > 1 ? (
-              <View style={s.slimBar}>
-                <Text style={s.slimText}>
+              <View style={[s.slimBar, { backgroundColor: colors.primary }]}>
+                <Text style={[s.slimText, { color: colors.onPrimary }]}>
                   {title} {data.number}
                 </Text>
               </View>
@@ -178,12 +205,12 @@ export function CorporateTemplate({ data, settings }: TemplateProps) {
         */}
         <Text
           fixed
-          style={s.slimPageCount}
+          style={[s.slimPageCount, { color: colors.onPrimary }]}
           render={({ pageNumber, totalPages }) => (pageNumber > 1 ? `Page ${pageNumber} of ${totalPages}` : "")}
         />
 
-        <View style={s.titleBar}>
-          <Text style={s.titleText}>{title}</Text>
+        <View style={[s.titleBar, { backgroundColor: colors.primary }]}>
+          <Text style={[s.titleText, { color: colors.onPrimary }]}>{title}</Text>
         </View>
 
         <View style={[s.row, { marginTop: 8 }]}>
@@ -264,13 +291,13 @@ export function CorporateTemplate({ data, settings }: TemplateProps) {
         </View>
 
         <View style={{ flexGrow: 1 }}>
-          <View style={s.tableHead} fixed>
-            <Text style={[s.th, s.colDescription]}>Description</Text>
-            <Text style={[s.th, s.colQty]}>Qty</Text>
-            <Text style={[s.th, s.colPrice]}>Unit Price</Text>
-            <Text style={[s.th, s.colDiscount]}>Disc %</Text>
-            <Text style={[s.th, s.colVat]}>VAT %</Text>
-            <Text style={[s.th, s.colTotal]}>Line Total</Text>
+          <View style={[s.tableHead, { backgroundColor: colors.secondary }]} fixed>
+            <Text style={[s.th, { color: colors.onSecondary }, s.colDescription]}>Description</Text>
+            <Text style={[s.th, { color: colors.onSecondary }, s.colQty]}>Qty</Text>
+            <Text style={[s.th, { color: colors.onSecondary }, s.colPrice]}>Unit Price</Text>
+            <Text style={[s.th, { color: colors.onSecondary }, s.colDiscount]}>Disc %</Text>
+            <Text style={[s.th, { color: colors.onSecondary }, s.colVat]}>VAT %</Text>
+            <Text style={[s.th, { color: colors.onSecondary }, s.colTotal]}>Line Total</Text>
           </View>
           <View style={s.tableBody}>
             {data.lineItems.map((item, index) => (
@@ -322,14 +349,14 @@ export function CorporateTemplate({ data, settings }: TemplateProps) {
           </View>
 
           <View style={{ width: 232 }}>
-            <TotalsRow label="Subtotal" value={formatCurrency(data.totals.subtotal, currency)} />
-            {data.totals.discount ? <TotalsRow label="Discount" value={`-${formatCurrency(data.totals.discount, currency)}`} /> : null}
-            <TotalsRow label="VAT" value={formatCurrency(data.totals.vat, currency)} />
-            <TotalsRow label="Total" value={formatCurrency(data.totals.total, currency)} emphasis="total" />
+            <TotalsRow label="Subtotal" value={formatCurrency(data.totals.subtotal, currency)} colors={colors} />
+            {data.totals.discount ? <TotalsRow label="Discount" value={`-${formatCurrency(data.totals.discount, currency)}`} colors={colors} /> : null}
+            <TotalsRow label="VAT" value={formatCurrency(data.totals.vat, currency)} colors={colors} />
+            <TotalsRow label="Total" value={formatCurrency(data.totals.total, currency)} emphasis="total" colors={colors} />
             {data.docKind === "invoice" ? (
               <>
-                <TotalsRow label="Amount Paid" value={formatCurrency(data.totals.amountPaid ?? 0, currency)} />
-                <TotalsRow label="Balance Due" value={formatCurrency(data.totals.balanceDue ?? 0, currency)} emphasis="due" />
+                <TotalsRow label="Amount Paid" value={formatCurrency(data.totals.amountPaid ?? 0, currency)} colors={colors} />
+                <TotalsRow label="Balance Due" value={formatCurrency(data.totals.balanceDue ?? 0, currency)} emphasis="due" colors={colors} />
               </>
             ) : null}
           </View>

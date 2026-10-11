@@ -41,6 +41,7 @@ export const getCompanySettings = cache(async (): Promise<CompanySettings> => {
       website: "",
       logo_url: null,
       brand_color: null,
+      brand_color_secondary: null,
       bank_name: "",
       bank_account_name: "",
       bank_account_number: "",

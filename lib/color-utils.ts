@@ -27,3 +27,14 @@ export function tintColor(hex: string, amount: number): string {
   const b = mix(parseInt(hex.slice(5, 7), 16));
   return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
+
+/** "#rrggbb" from 0-255 channels. */
+export function rgbToHex(r: number, g: number, b: number): string {
+  return `#${[r, g, b].map((c) => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Mixes `hex` toward black by `amount` (0-1) - a darker shade of the same colour. */
+export function shadeColor(hex: string, amount: number): string {
+  const mix = (channel: number) => Math.round(channel * (1 - amount));
+  return rgbToHex(mix(parseInt(hex.slice(1, 3), 16)), mix(parseInt(hex.slice(3, 5), 16)), mix(parseInt(hex.slice(5, 7), 16)));
+}

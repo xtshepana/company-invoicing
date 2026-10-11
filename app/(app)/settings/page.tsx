@@ -55,8 +55,9 @@ export default async function SettingsPage() {
             </CardHeader>
             <CardContent>
               <AppearanceForm
-                key={`${settings.brand_color}-${settings.pdf_template}-${settings.show_company_name}`}
+                key={`${settings.brand_color}-${settings.brand_color_secondary}-${settings.pdf_template}-${settings.show_company_name}`}
                 brandColor={settings.brand_color}
+                brandColorSecondary={settings.brand_color_secondary}
                 pdfTemplate={settings.pdf_template}
                 showCompanyName={settings.show_company_name}
               />

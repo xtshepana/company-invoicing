@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Image, renderToBuffer } from "@react-pdf/renderer";
-import { CorporateTemplate, corporateTitle } from "@/lib/pdf/templates/corporate";
+import { CorporateTemplate, corporateColors, corporateTitle } from "@/lib/pdf/templates/corporate";
 import { PDF_TEMPLATE_COMPONENTS, PDF_TEMPLATE_LABELS, resolvePdfTemplate } from "@/lib/pdf/templates";
 import { PDF_TEMPLATES } from "@/lib/validations/company-settings";
 import type { DocumentData } from "@/lib/pdf/document-data";
@@ -244,6 +244,75 @@ describe("the banking details box", () => {
     expect(flat(quote())).not.toContain("Payment Reference");
     expect(flat(creditNote())).not.toContain("Payment Reference");
   });
+});
+
+/** The effective value of one style property (e.g. backgroundColor) on every element of the rendered tree, found by walking it - where a style array sets it twice, the later entry wins, as it does in the PDF. */
+function styleValues(node: unknown, property: string): string[] {
+  if (node === null || node === undefined || typeof node !== "object") return [];
+  if (Array.isArray(node)) return node.flatMap((child) => styleValues(child, property));
+  const element = node as { type?: unknown; props?: Record<string, unknown> };
+  if (!element.props) return [];
+  const own: string[] = [];
+  const style = element.props.style as unknown;
+  let effective: string | undefined;
+  for (const entry of Array.isArray(style) ? style : [style]) {
+    const value = entry && typeof entry === "object" ? (entry as Record<string, unknown>)[property] : undefined;
+    if (typeof value === "string") effective = value.toLowerCase();
+  }
+  if (effective) own.push(effective);
+  const next = typeof element.type === "function" ? (element.type as (props: unknown) => unknown)(element.props) : element.props.children;
+  return [...own, ...styleValues(next, property)];
+}
+
+describe("the template colours", () => {
+  it("falls back to navy and orange when the company has no brand colours", () => {
+    expect(corporateColors(settings({ brand_color: null, brand_color_secondary: null }))).toEqual({
+      primary: "#00008b",
+      secondary: "#e0731e",
+      onPrimary: "#ffffff",
+      onSecondary: "#ffffff",
+    });
+  });
+
+  it("uses the brand colour and the second logo colour", () => {
+    const colors = corporateColors(settings({ brand_color: "#02b0e2", brand_color_secondary: "#737373" }));
+    expect(colors.primary).toBe("#02b0e2");
+    expect(colors.secondary).toBe("#737373");
+  });
+
+  it("derives a darker secondary from the brand colour when there is no second colour", () => {
+    expect(corporateColors(settings({ brand_color: "#02b0e2", brand_color_secondary: null })).secondary).toBe("#017293");
+  });
+
+  it("puts black text on a light colour and white text on a dark one", () => {
+    expect(corporateColors(settings({ brand_color: "#ffeb3b", brand_color_secondary: "#011c42" }))).toMatchObject({ onPrimary: "#000000", onSecondary: "#ffffff" });
+  });
+
+  it("ignores a colour that is not a valid hex value", () => {
+    const colors = corporateColors(settings({ brand_color: "red; background:url(x)", brand_color_secondary: "#12345" }));
+    expect(colors.primary).toBe("#00008b");
+    expect(colors.secondary).toBe("#e0731e");
+  });
+
+  it("paints the title bar, items header and the Total and Balance Due rows in those colours", () => {
+    const fills = styleValues(render(invoice(), { brand_color: "#02b0e2", brand_color_secondary: "#737373" }), "backgroundColor");
+    expect(fills.filter((c) => c === "#02b0e2").length).toBeGreaterThanOrEqual(2); // title bar + Total label
+    expect(fills.filter((c) => c === "#737373").length).toBeGreaterThanOrEqual(2); // items header + Balance Due label
+    expect(fills).not.toContain("#00008b");
+    expect(fills).not.toContain("#e0731e");
+  });
+
+  it("keeps the original navy and orange on a company without brand colours", () => {
+    const fills = styleValues(render(invoice(), { brand_color: null, brand_color_secondary: null }), "backgroundColor");
+    expect(fills).toContain("#00008b");
+    expect(fills).toContain("#e0731e");
+  });
+
+  it("renders a valid single-page PDF in custom colours", async () => {
+    const pdf = await renderToBuffer(render(invoice(), { brand_color: "#02b0e2", brand_color_secondary: "#737373" }));
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pageCount(pdf)).toBe(1);
+  }, 60_000);
 });
 
 describe("rendering to a real PDF", () => {

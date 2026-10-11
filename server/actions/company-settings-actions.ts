@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/server/services/auth";
 import { recordAuditLog } from "@/server/services/audit";
+import { parseBrandColorField } from "@/lib/branding/logo-colors";
 import {
   appearanceSchema,
   bankDetailsSchema,
@@ -148,8 +149,18 @@ export async function uploadCompanyLogoAction(
   // re-upload to the same fixed path instead of an old cached response.
   const logoUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`;
 
+  // The form reads the logo's two main colours in the browser (lib/branding/logo-colors.ts) and posts them along
+  // with the file. They are re-validated here as hex, and only replace the saved brand colours when a primary was found.
+  const brandPrimary = parseBrandColorField(formData.get("brand_color"));
+  const brandSecondary = parseBrandColorField(formData.get("brand_color_secondary"));
+  const patch: TablesUpdate<"company_settings"> = { logo_url: logoUrl };
+  if (brandPrimary) {
+    patch.brand_color = brandPrimary;
+    patch.brand_color_secondary = brandSecondary;
+  }
+
   const { data: before } = await supabase.from("company_settings").select("*").eq("id", true).single();
-  const { error } = await supabase.from("company_settings").update({ logo_url: logoUrl }).eq("id", true);
+  const { error } = await supabase.from("company_settings").update(patch).eq("id", true);
   if (error) {
     return { error: "Unable to save logo. Please try again." };
   }
@@ -160,7 +171,7 @@ export async function uploadCompanyLogoAction(
     entity: "company_settings",
     entityId: "singleton",
     oldValue: (before as unknown as Json) ?? null,
-    newValue: { logo_url: logoUrl } as unknown as Json,
+    newValue: patch as unknown as Json,
   });
 
   revalidatePath("/settings");

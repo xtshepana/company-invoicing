@@ -22,21 +22,24 @@ const TEMPLATE_DESCRIPTIONS: Record<(typeof PDF_TEMPLATES)[number], string> = {
   minimal: "Airy and understated, with a single accent rule.",
   bold: "A full-height colored sidebar carries the branding.",
   elegant: "Serif type and a centered masthead - timeless and formal.",
-  corporate: "A boxed, form-style layout: navy title bar, labelled panels and an orange items header.",
+  corporate: "A boxed, form-style layout: title bar, labelled panels and an items header in your two brand colours.",
 };
 
 export function AppearanceForm({
   brandColor,
+  brandColorSecondary,
   pdfTemplate,
   showCompanyName,
 }: {
   brandColor: string | null;
+  brandColorSecondary: string | null;
   pdfTemplate: string;
   showCompanyName: boolean;
 }) {
   const [state, formAction, pending] = useActionState(updateAppearanceAction, initialState);
   const lastState = useRef(state);
   const [selectedColor, setSelectedColor] = useState<string | null>(brandColor);
+  const [selectedSecondary, setSelectedSecondary] = useState<string | null>(brandColorSecondary);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(pdfTemplate);
   const [showName, setShowName] = useState(showCompanyName);
 
@@ -48,6 +51,7 @@ export function AppearanceForm({
   }, [state]);
 
   const isValidCustom = selectedColor !== null && HEX_COLOR_PATTERN.test(selectedColor);
+  const isValidSecondary = selectedSecondary !== null && HEX_COLOR_PATTERN.test(selectedSecondary);
 
   return (
     <form action={formAction} className="space-y-8">
@@ -55,7 +59,8 @@ export function AppearanceForm({
         <Label>Brand color</Label>
         <p className="text-sm text-muted-foreground">
           Used for buttons and highlights in the app, and as an accent on invoices, quotes, credit notes, and
-          statements.
+          statements. Uploading a logo sets this (and the secondary color below) from the logo&apos;s own colors - change
+          them here if you prefer.
         </p>
         <div className="flex flex-wrap gap-2 pt-1">
           <button
@@ -104,6 +109,35 @@ export function AppearanceForm({
           ) : null}
         </div>
         <input type="hidden" name="brand_color" value={selectedColor ?? ""} />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="brand_color_secondary_custom">Secondary color</Label>
+        <p className="text-sm text-muted-foreground">
+          The logo&apos;s second color. The Corporate template uses it for the items header and the balance due.
+          Leave it empty to use a darker shade of the brand color.
+        </p>
+        <div className="flex items-center gap-2 pt-1">
+          <Input
+            id="brand_color_secondary_custom"
+            value={selectedSecondary ?? ""}
+            onChange={(event) => setSelectedSecondary(event.target.value || null)}
+            placeholder="#777777"
+            className="w-32 font-mono"
+          />
+          {selectedSecondary ? (
+            <span
+              className="h-6 w-6 shrink-0 rounded border"
+              style={{ backgroundColor: isValidSecondary ? selectedSecondary : "transparent" }}
+            />
+          ) : null}
+          {selectedSecondary ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => setSelectedSecondary(null)}>
+              Clear
+            </Button>
+          ) : null}
+        </div>
+        <input type="hidden" name="brand_color_secondary" value={selectedSecondary ?? ""} />
       </div>
 
       <div className="space-y-2">
