@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { documentTitle } from "@/lib/pdf/document-title";
 import { formatCurrency } from "@/lib/money";
 import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
 import { DEFAULT_ACCENT_COLOR, type TemplateProps } from "@/lib/pdf/templates/types";
@@ -57,7 +58,7 @@ export function MinimalTemplate({ data, settings }: TemplateProps) {
             {settings.vat_number ? <Text style={st.small}>VAT No: {settings.vat_number}</Text> : null}
           </View>
           <View>
-            <Text style={st.docTitle}>{data.docTitle}</Text>
+            <Text style={st.docTitle}>{documentTitle(data.docKind, settings.vat_registered).toUpperCase()}</Text>
             <Text style={st.number}>{data.number}</Text>
             {data.statusLabel ? <Text style={st.statusBadge}>{data.statusLabel}</Text> : null}
           </View>

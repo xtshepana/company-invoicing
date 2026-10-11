@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { documentTitle } from "@/lib/pdf/document-title";
 import { formatCurrency } from "@/lib/money";
 import { readableTextColor, tintColor } from "@/lib/color-utils";
 import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
@@ -94,7 +95,7 @@ export function ModernTemplate({ data, settings }: TemplateProps) {
             {settings.email ? <Text style={st.companySmall}>{settings.email}</Text> : null}
           </View>
           <View>
-            <Text style={st.docTitle}>{data.docTitle}</Text>
+            <Text style={st.docTitle}>{documentTitle(data.docKind, settings.vat_registered).toUpperCase()}</Text>
             <Text style={[st.metaValue, { color: onAccent, textAlign: "right" }]}>{data.number}</Text>
             {data.statusLabel ? <Text style={st.statusBadge}>{data.statusLabel}</Text> : null}
           </View>

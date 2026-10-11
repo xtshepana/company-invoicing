@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { documentTitle } from "@/lib/pdf/document-title";
 import { formatCurrency } from "@/lib/money";
 import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
 import type { DocumentData } from "@/lib/pdf/document-data";
@@ -74,16 +75,9 @@ const s = StyleSheet.create({
   sectionLabel: { backgroundColor: LABEL_BG, borderRadius: 3, paddingHorizontal: 7, paddingVertical: 4, marginBottom: 4, alignSelf: "flex-start" },
 });
 
-/** The title shown in the bar. VAT vendors must issue a "Tax Invoice" (and tax credit note); everyone else a plain Invoice. */
+/** The title shown in the bar - the shared rule (see lib/pdf/document-title.ts). Kept as a named export for this template's tests. */
 export function corporateTitle(docKind: DocumentData["docKind"], vatRegistered: boolean): string {
-  switch (docKind) {
-    case "invoice":
-      return vatRegistered ? "Tax Invoice" : "Invoice";
-    case "credit_note":
-      return vatRegistered ? "Tax Credit Note" : "Credit Note";
-    case "quote":
-      return "Quotation";
-  }
+  return documentTitle(docKind, vatRegistered);
 }
 
 function LabelValue({ label, value, last }: { label: string; value: string; last?: boolean }) {
