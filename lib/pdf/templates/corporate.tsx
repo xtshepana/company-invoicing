@@ -32,21 +32,23 @@ const s = StyleSheet.create({
   row: { flexDirection: "row" },
   box: { border: `0.75px solid ${BORDER}`, borderRadius: 3, padding: 8 },
 
-  companyBox: { flexGrow: 1, flexBasis: 0, marginRight: 8 },
-  logo: { width: 78, maxHeight: 62, objectFit: "contain", marginRight: 12 },
+  // Both header rows split 50/50 with an 8pt gutter. The split is done by plain column wrappers (no padding or border), because a flex
+  // item's padding and border skew the split — which is what pushed the right-hand column of the two rows out of line.
+  colLeft: { flexGrow: 1, flexBasis: 0, marginRight: 8 },
+  colRight: { flexGrow: 1, flexBasis: 0 },
+  companyBox: { flexGrow: 1, justifyContent: "space-between" },
+  logo: { maxWidth: 150, maxHeight: 54, objectFit: "contain", marginBottom: 6 },
   companyName: { fontSize: 10.5, fontFamily: "Helvetica-Bold", marginBottom: 2 },
   line: { fontSize: 8, lineHeight: 1.45 },
   bold: { fontFamily: "Helvetica-Bold" },
 
-  metaPanel: { width: 232 },
   metaRow: { flexDirection: "row", marginBottom: 4 },
-  metaLabel: { backgroundColor: LABEL_BG, borderRadius: 3, justifyContent: "center", paddingHorizontal: 7, paddingVertical: 6, width: 78 },
+  metaLabel: { backgroundColor: LABEL_BG, borderRadius: 3, justifyContent: "center", paddingHorizontal: 7, paddingVertical: 6, width: 88 },
   metaLabelText: { fontFamily: "Helvetica-Bold", fontSize: 8.5 },
   metaValue: { flexGrow: 1, flexBasis: 0, border: `0.75px solid ${BORDER}`, borderRadius: 3, justifyContent: "center", paddingHorizontal: 7, paddingVertical: 5, marginLeft: 4 },
   metaValueText: { fontSize: 8.5, textAlign: "center" },
-  metaPair: { flexDirection: "row", flexGrow: 1, flexBasis: 0 },
 
-  partyBox: { flexGrow: 1, flexBasis: 0, minHeight: 78 },
+  partyBox: { flexGrow: 1, minHeight: 78 },
   partyTitle: { fontFamily: "Helvetica-Bold", fontSize: 9.5, marginBottom: 3 },
 
   stripCell: { flexGrow: 1, flexBasis: 0 },
@@ -84,9 +86,9 @@ export function corporateTitle(docKind: DocumentData["docKind"], vatRegistered: 
   }
 }
 
-function LabelValue({ label, value }: { label: string; value: string }) {
+function LabelValue({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
-    <View style={s.metaRow}>
+    <View style={[s.metaRow, last ? { marginBottom: 0 } : {}]}>
       <View style={s.metaLabel}>
         <Text style={s.metaLabelText}>{label}</Text>
       </View>
@@ -97,9 +99,23 @@ function LabelValue({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** "Page x of y" in the same label / value shape as every other row of the panel. */
+function PageRow() {
+  return (
+    <View style={[s.metaRow, { marginBottom: 0 }]}>
+      <View style={s.metaLabel}>
+        <Text style={s.metaLabelText}>Page</Text>
+      </View>
+      <View style={s.metaValue}>
+        <Text style={s.metaValueText} render={({ pageNumber, totalPages }) => `${pageNumber} of ${totalPages}`} />
+      </View>
+    </View>
+  );
+}
+
 function StripCell({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
-    <View style={[s.stripCell, last ? {} : { marginRight: 6 }]}>
+    <View style={[s.stripCell, last ? {} : { marginRight: 8 }]}>
       <View style={s.stripLabel}>
         <Text style={s.metaLabelText}>{label}</Text>
       </View>
@@ -170,16 +186,15 @@ export function CorporateTemplate({ data, settings }: TemplateProps) {
           <Text style={s.titleText}>{title}</Text>
         </View>
 
-        <View style={[s.row, { marginTop: 10 }]}>
+        <View style={[s.row, { marginTop: 8 }]}>
+          <View style={s.colLeft}>
           <View style={[s.box, s.companyBox]}>
-            <View style={s.row}>
+            <View>
               {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image, not an HTML img; no alt prop exists on this component */}
               {settings.logo_url ? <Image style={s.logo} src={settings.logo_url} /> : null}
-              <View style={{ flexGrow: 1, flexBasis: 0 }}>
-                {settings.show_company_name ? <Text style={s.companyName}>{settings.company_name}</Text> : null}
-                {settings.trading_name ? <Text style={s.line}>Trading as {settings.trading_name}</Text> : null}
-                {settings.address_physical ? <Text style={s.line}>{settings.address_physical}</Text> : null}
-              </View>
+              {settings.show_company_name ? <Text style={s.companyName}>{settings.company_name}</Text> : null}
+              {settings.trading_name ? <Text style={s.line}>Trading as {settings.trading_name}</Text> : null}
+              {settings.address_physical ? <Text style={s.line}>{settings.address_physical}</Text> : null}
             </View>
             <View style={[s.row, { marginTop: 8, justifyContent: "space-between" }]}>
               <View>
@@ -212,44 +227,33 @@ export function CorporateTemplate({ data, settings }: TemplateProps) {
               </View>
             </View>
           </View>
+          </View>
 
-          <View style={s.metaPanel}>
-            <View style={s.metaRow}>
-              <View style={s.metaPair}>
-                <View style={[s.metaLabel, { width: 52 }]}>
-                  <Text style={s.metaLabelText}>Date</Text>
-                </View>
-                <View style={s.metaValue}>
-                  <Text style={s.metaValueText}>{dateField?.value ?? ""}</Text>
-                </View>
-              </View>
-              <View style={[s.metaPair, { marginLeft: 4 }]}>
-                <View style={[s.metaLabel, { width: 44 }]}>
-                  <Text style={s.metaLabelText}>Page</Text>
-                </View>
-                <View style={s.metaValue}>
-                  <Text style={s.metaValueText} render={({ pageNumber, totalPages }) => `${pageNumber} of ${totalPages}`} />
-                </View>
-              </View>
-            </View>
+          <View style={s.colRight}>
+            <LabelValue label="Document No." value={numberField?.value ?? data.number} />
+            <LabelValue label="Date" value={dateField?.value ?? ""} />
             {extraFields.map((field) => (
               <LabelValue key={field.label} label={field.label.replace(/ date$/i, "").replace(/^Due$/, "Due By")} value={field.value} />
             ))}
             {data.statusLabel ? <LabelValue label="Status" value={data.statusLabel} /> : null}
-            <LabelValue label="Document No." value={numberField?.value ?? data.number} />
+            <PageRow />
           </View>
         </View>
 
         <View style={[s.row, { marginTop: 8 }]}>
-          <View style={[s.box, s.partyBox, { marginRight: 8 }]}>
-            <Text style={s.partyTitle}>{customer.name}</Text>
-            {billingAddress ? <Text style={s.line}>{billingAddress}</Text> : null}
-            {customer.contactPerson ? <Text style={s.line}>{customer.contactPerson}</Text> : null}
-            {customer.email ? <Text style={s.line}>{customer.email}</Text> : null}
+          <View style={s.colLeft}>
+            <View style={[s.box, s.partyBox]}>
+              <Text style={s.partyTitle}>{customer.name}</Text>
+              {billingAddress ? <Text style={s.line}>{billingAddress}</Text> : null}
+              {customer.contactPerson ? <Text style={s.line}>{customer.contactPerson}</Text> : null}
+              {customer.email ? <Text style={s.line}>{customer.email}</Text> : null}
+            </View>
           </View>
-          <View style={[s.box, s.partyBox]}>
-            <Text style={s.partyTitle}>{data.docKind === "quote" ? "Quoted For:" : "Delivery Address:"}</Text>
-            {customer.address ? <Text style={s.line}>{customer.address}</Text> : null}
+          <View style={s.colRight}>
+            <View style={[s.box, s.partyBox]}>
+              <Text style={s.partyTitle}>{data.docKind === "quote" ? "Quoted For:" : "Delivery Address:"}</Text>
+              {customer.address ? <Text style={s.line}>{customer.address}</Text> : null}
+            </View>
           </View>
         </View>
 
