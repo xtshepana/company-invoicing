@@ -9,6 +9,7 @@ const customer = {
   customer_reference: "ACM001",
   contact_person: "Jane Doe",
   address_physical: "1 Main Rd",
+  address_postal: "PO Box 7",
   email: "jane@acme.test",
   vat_number: "4123456789",
 } as InvoiceWithItems["customers"];
@@ -94,6 +95,25 @@ describe("invoiceToDocumentData", () => {
   it("only includes a Reference meta field when one is set", () => {
     expect(invoiceToDocumentData(makeInvoice({ reference: "" })).metaFields.some((f) => f.label === "Reference")).toBe(false);
     expect(invoiceToDocumentData(makeInvoice({ reference: "PO-1" })).metaFields.some((f) => f.label === "Reference")).toBe(true);
+  });
+});
+
+describe("the customer on every kind of document", () => {
+  it("carries both the physical and the postal address (the Corporate template bills to the postal one)", () => {
+    for (const data of [
+      invoiceToDocumentData(makeInvoice()),
+      quoteToDocumentData(makeQuote()),
+      creditNoteToDocumentData(makeCreditNote()),
+    ]) {
+      expect(data.customer.address).toBe("1 Main Rd");
+      expect(data.customer.postalAddress).toBe("PO Box 7");
+    }
+  });
+
+  it("uses an empty string, not undefined, when a customer has no postal address or there is no customer", () => {
+    const noPostal = { ...customer, address_postal: undefined } as unknown as InvoiceWithItems["customers"];
+    expect(invoiceToDocumentData(makeInvoice({ customers: noPostal })).customer.postalAddress).toBe("");
+    expect(invoiceToDocumentData(makeInvoice({ customers: null })).customer.postalAddress).toBe("");
   });
 });
 

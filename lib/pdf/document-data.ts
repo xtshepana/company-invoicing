@@ -29,7 +29,10 @@ export interface DocumentCustomer {
   name: string;
   accountNo: string;
   contactPerson: string;
+  /** Physical address - used as the delivery address. */
   address: string;
+  /** Postal address, when the customer has one separate from the physical one. */
+  postalAddress: string;
   email: string;
   vatNumber: string;
 }
@@ -67,6 +70,7 @@ function customerFrom(customer: Tables<"customers"> | null): DocumentCustomer {
     accountNo: customer?.customer_reference ?? "",
     contactPerson: customer?.contact_person ?? "",
     address: customer?.address_physical ?? "",
+    postalAddress: customer?.address_postal ?? "",
     email: customer?.email ?? "",
     vatNumber: customer?.vat_number ?? "",
   };
