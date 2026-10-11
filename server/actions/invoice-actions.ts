@@ -180,6 +180,46 @@ export async function sendInvoiceEmailAction(_prev: ActionResult, formData: Form
 }
 
 /**
+ * Marks a draft invoice as sent WITHOUT emailing anyone - for companies that
+ * send their invoices themselves (downloaded PDF, their own mailbox, WhatsApp,
+ * hand delivery). Same draft -> sent transition and audit action as the email
+ * path, but no customer email is needed and nothing is sent.
+ */
+export async function markInvoiceSentAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const actor = await requireModuleAccess("invoices");
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return { error: "Missing invoice." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: existing, error: fetchError } = await supabase.from("invoices").select("status").eq("id", id).single();
+  if (fetchError || !existing) return { error: "Invoice not found." };
+  if (existing.status !== "draft") return { error: "Only draft invoices can be marked as sent." };
+
+  // The .eq("status", "draft") guard plus .select() means a concurrent change (someone else already sent,
+  // paid or cancelled it) updates zero rows and is reported instead of silently overwritten.
+  const { data: updated, error } = await supabase
+    .from("invoices")
+    .update({ status: "sent" })
+    .eq("id", id)
+    .eq("status", "draft")
+    .select("id");
+  if (error) return { error: "Unable to update this invoice. Please try again." };
+  if (!updated || updated.length === 0) return { error: "This invoice was changed by someone else. Refresh and try again." };
+
+  await recordAuditLog({
+    userId: actor.id,
+    action: "invoice.marked_sent",
+    entity: "invoices",
+    entityId: id,
+    newValue: { emailed: false } as unknown as Json,
+  });
+
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${id}`);
+  return { success: true };
+}
+
+/**
  * Uses the service-role client (not the caller's RLS-scoped session) so the
  * email always reaches the customer regardless of whether the staff member
  * marking the invoice sent also happens to have the customers module

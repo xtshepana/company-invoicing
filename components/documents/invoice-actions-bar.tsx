@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Download, Pencil, Mail, BellRing } from "lucide-react";
+import { Download, Pencil, Mail, BellRing, CircleCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   sendInvoiceEmailAction,
+  markInvoiceSentAction,
   sendPaymentReminderAction,
   voidInvoiceAction,
   cancelInvoiceAction,
@@ -41,6 +42,19 @@ export function InvoiceActionsBar({ invoice }: { invoice: Invoice }) {
       if (result.error) toast.error(result.error);
       else {
         toast.success(invoice.status === "draft" ? "Invoice sent." : "Invoice emailed again.");
+        router.refresh();
+      }
+    });
+  }
+
+  function markSent() {
+    const formData = new FormData();
+    formData.set("id", invoice.id);
+    startTransition(async () => {
+      const result = await markInvoiceSentAction({}, formData);
+      if (result.error) toast.error(result.error);
+      else {
+        toast.success("Invoice marked as sent.");
         router.refresh();
       }
     });
@@ -99,6 +113,11 @@ export function InvoiceActionsBar({ invoice }: { invoice: Invoice }) {
       {canEmail ? (
         <Button variant="outline" disabled={pending} onClick={sendEmail}>
           <Mail /> {invoice.status === "draft" ? "Send Email" : "Resend Email"}
+        </Button>
+      ) : null}
+      {invoice.status === "draft" ? (
+        <Button variant="outline" disabled={pending} onClick={markSent}>
+          <CircleCheck /> Mark as Sent
         </Button>
       ) : null}
       {canRemind ? (
