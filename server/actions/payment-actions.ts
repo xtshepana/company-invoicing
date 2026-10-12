@@ -10,6 +10,7 @@ import { recordPaymentSchema, applyCreditSchema } from "@/lib/validations/paymen
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { sendEmail } from "@/server/services/email";
 import { paymentReceiptEmail } from "@/lib/email/templates";
+import { emailSignatureFromSettings } from "@/lib/email/signature";
 import type { ActionResult } from "@/server/actions/auth-actions";
 import type { Json } from "@/types/database";
 
@@ -94,6 +95,7 @@ async function sendPaymentReceiptEmail(customerId: string, amount: number, payme
   const settings = await getCompanySettings();
   const content = paymentReceiptEmail({
     companyName: settings.company_name,
+    signature: emailSignatureFromSettings(settings),
     customerName: customer.company_name,
     amount,
     paymentDate,

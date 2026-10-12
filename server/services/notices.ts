@@ -134,6 +134,7 @@ function buildEmail(company: NoticeCompany, subject: string, body: string, vars:
     companyName: company.name,
     subject: renderNoticeSubject(subject, vars),
     bodyHtml: renderNoticeBodyHtml(body, vars),
+    signature: company.signature,
   });
 }
 

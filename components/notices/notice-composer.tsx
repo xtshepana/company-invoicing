@@ -83,6 +83,7 @@ export function NoticeComposer({ recipients, unreachable, company, adminEmail, s
       companyName: company.name,
       subject: renderNoticeSubject(subject || "(no subject yet)", vars),
       bodyHtml: renderNoticeBodyHtml(body || "(Your message will appear here.)", vars),
+      signature: company.signature,
     });
     return { ...content, customerName: vars.customerName };
   }, [recipients, selected, company, subject, body]);

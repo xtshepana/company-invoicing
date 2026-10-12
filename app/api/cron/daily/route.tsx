@@ -7,6 +7,7 @@ import { mapWithConcurrency } from "@/lib/concurrency";
 import { recordAuditLog } from "@/server/services/audit";
 import { sendEmail } from "@/server/services/email";
 import { recurringInvoiceGeneratedEmail, paymentReminderReviewEmail, accountBlockNoticeEmail } from "@/lib/email/templates";
+import { emailSignatureFromSettings } from "@/lib/email/signature";
 import { InvoicePdf } from "@/lib/pdf/invoice-pdf";
 import { PAYMENT_REMINDER_CHECKPOINTS } from "@/lib/config/defaults";
 import type { LineItemInput } from "@/lib/validations/line-items";
@@ -243,6 +244,7 @@ async function emailGeneratedInvoice(
   const pdfBuffer = await renderToBuffer(<InvoicePdf invoice={invoice as unknown as InvoiceWithItems} settings={settings} />);
   const content = recurringInvoiceGeneratedEmail({
     companyName: settings.company_name,
+    signature: emailSignatureFromSettings(settings),
     customerName,
     invoiceNumber: invoice.invoice_number,
     total: invoice.total,

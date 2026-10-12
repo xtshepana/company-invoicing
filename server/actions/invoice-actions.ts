@@ -11,6 +11,7 @@ import { computeDocumentTotals } from "@/lib/documents";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { sendEmail } from "@/server/services/email";
 import { invoiceSentEmail, paymentReminderEmail } from "@/lib/email/templates";
+import { emailSignatureFromSettings } from "@/lib/email/signature";
 import { renderInvoicePdf } from "@/lib/pdf/render-invoice";
 import type { InvoiceWithItems } from "@/server/services/invoices";
 import type { ActionResult } from "@/server/actions/auth-actions";
@@ -241,6 +242,7 @@ async function sendInvoiceSentEmail(invoiceId: string): Promise<boolean> {
   const pdfBuffer = await renderInvoicePdf(invoice as unknown as InvoiceWithItems, settings);
   const content = invoiceSentEmail({
     companyName: settings.company_name,
+    signature: emailSignatureFromSettings(settings),
     customerName: invoice.customers.company_name,
     invoiceNumber: invoice.invoice_number,
   });
@@ -290,6 +292,7 @@ export async function sendPaymentReminderAction(_prev: ActionResult, formData: F
   const settings = await getCompanySettings();
   const content = paymentReminderEmail({
     companyName: settings.company_name,
+    signature: emailSignatureFromSettings(settings),
     customerName: invoice.customers.company_name,
     invoiceNumber: invoice.invoice_number,
     balanceDue: invoice.balance_due,
