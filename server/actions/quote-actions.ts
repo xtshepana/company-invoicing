@@ -11,6 +11,7 @@ import { computeDocumentTotals } from "@/lib/documents";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { sendEmail } from "@/server/services/email";
 import { quoteSentEmail } from "@/lib/email/templates";
+import { emailSignatureFromSettings } from "@/lib/email/signature";
 import { renderQuotePdf } from "@/lib/pdf/render-quote";
 import type { QuoteWithItems } from "@/server/services/quotes";
 import type { ActionResult } from "@/server/actions/auth-actions";
@@ -230,6 +231,7 @@ async function sendQuoteSentEmail(quoteId: string): Promise<boolean> {
   const pdfBuffer = await renderQuotePdf(quote as unknown as QuoteWithItems, settings);
   const content = quoteSentEmail({
     companyName: settings.company_name,
+    signature: emailSignatureFromSettings(settings),
     customerName: quote.customers.company_name,
     quoteNumber: quote.quote_number,
   });

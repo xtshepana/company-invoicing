@@ -11,6 +11,7 @@ import { computeDocumentTotals } from "@/lib/documents";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { sendEmail } from "@/server/services/email";
 import { creditNoteIssuedEmail } from "@/lib/email/templates";
+import { emailSignatureFromSettings } from "@/lib/email/signature";
 import { renderCreditNotePdf } from "@/lib/pdf/render-credit-note";
 import type { CreditNoteWithItems } from "@/server/services/credit-notes";
 import type { ActionResult } from "@/server/actions/auth-actions";
@@ -195,6 +196,7 @@ async function sendCreditNoteIssuedEmail(creditNoteId: string): Promise<void> {
   const pdfBuffer = await renderCreditNotePdf(creditNote as unknown as CreditNoteWithItems, settings);
   const content = creditNoteIssuedEmail({
     companyName: settings.company_name,
+    signature: emailSignatureFromSettings(settings),
     customerName: creditNote.customers.company_name,
     creditNoteNumber: creditNote.credit_note_number,
     total: creditNote.total,

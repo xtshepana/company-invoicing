@@ -5,6 +5,8 @@
  * used for the live preview in the browser.
  */
 
+import { emailSignatureFromSettings, type EmailSignature, type SignatureSource } from "@/lib/email/signature";
+
 /** Placeholders a notice may use. `bank_details` is body-only. */
 export const NOTICE_PLACEHOLDERS = [
   "customer_name",
@@ -29,6 +31,8 @@ export interface NoticeCompany {
   email: string;
   phone: string;
   bank: BankDetails | null;
+  /** The company's "Kind regards" block (logo, phone, email, address...), built from the same settings - see lib/email/signature.ts. */
+  signature: EmailSignature;
 }
 
 export interface NoticeVars {
@@ -101,21 +105,32 @@ export function bankDetailsFromSettings(settings: {
   };
 }
 
-export function noticeCompanyFromSettings(settings: {
-  company_name: string;
-  email: string;
-  phone: string;
-  bank_name: string;
-  bank_account_name: string;
-  bank_account_number: string;
-  bank_branch_code: string;
-  bank_account_type: string;
-}): NoticeCompany {
+export function noticeCompanyFromSettings(
+  settings: {
+    company_name: string;
+    email: string;
+    phone: string;
+    bank_name: string;
+    bank_account_name: string;
+    bank_account_number: string;
+    bank_branch_code: string;
+    bank_account_type: string;
+  } & Partial<SignatureSource>
+): NoticeCompany {
   return {
     name: settings.company_name,
     email: settings.email,
     phone: settings.phone,
     bank: bankDetailsFromSettings(settings),
+    signature: emailSignatureFromSettings({
+      logo_url: null,
+      website: "",
+      address_physical: "",
+      registration_number: "",
+      vat_number: "",
+      brand_color: null,
+      ...settings,
+    }),
   };
 }
 

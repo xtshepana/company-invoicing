@@ -1,38 +1,24 @@
 import { formatCurrency } from "@/lib/money";
+import { escapeHtml } from "@/lib/email/escape";
+import { signatureHtml, type EmailSignature } from "@/lib/email/signature";
 
 export interface EmailContent {
   subject: string;
   html: string;
 }
 
-function layout(companyName: string, bodyHtml: string): string {
+function layout(companyName: string, bodyHtml: string, signature?: EmailSignature): string {
   return `
   <div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0; color: #1a1a1a;">
     <div style="padding: 24px 0; border-bottom: 2px solid #1a1a1a; margin-bottom: 24px;">
       <strong style="font-size: 18px;">${escapeHtml(companyName)}</strong>
     </div>
     ${bodyHtml}
+    ${signature ? signatureHtml(signature) : ""}
     <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #888;">
       This is an automated message from ${escapeHtml(companyName)}.
     </div>
   </div>`;
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => {
-    switch (char) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      default:
-        return "&#39;";
-    }
-  });
 }
 
 /**
@@ -40,14 +26,19 @@ function escapeHtml(value: string): string {
  * same wording either way, just the document type word and the company
  * sign-off change. See invoiceSentEmail/quoteSentEmail.
  */
-function documentSentBody(companyName: string, customerName: string, documentType: "invoice" | "quotation"): string {
+function documentSentBody(
+  companyName: string,
+  customerName: string,
+  documentType: "invoice" | "quotation",
+  signature?: EmailSignature
+): string {
   return `
     <p>Dear ${escapeHtml(customerName)},</p>
     <p>Thank you for choosing ${escapeHtml(companyName)}.</p>
     <p>Please find attached your ${documentType} for your attention.</p>
     <p>If you have any questions or require any changes, please feel free to contact us. We are happy to assist.</p>
     <p>We appreciate your business and look forward to serving you.</p>
-    <p>Kind regards,<br>${escapeHtml(companyName)}</p>
+    ${signature ? "" : `<p>Kind regards,<br>${escapeHtml(companyName)}</p>`}
     `;
 }
 
@@ -55,11 +46,12 @@ export function invoiceSentEmail(params: {
   companyName: string;
   customerName: string;
   invoiceNumber: string;
+  signature?: EmailSignature;
 }): EmailContent {
-  const { companyName, customerName, invoiceNumber } = params;
+  const { companyName, customerName, invoiceNumber, signature } = params;
   return {
     subject: `Invoice ${invoiceNumber} from ${companyName}`,
-    html: layout(companyName, documentSentBody(companyName, customerName, "invoice")),
+    html: layout(companyName, documentSentBody(companyName, customerName, "invoice", signature), signature),
   };
 }
 
@@ -67,11 +59,12 @@ export function quoteSentEmail(params: {
   companyName: string;
   customerName: string;
   quoteNumber: string;
+  signature?: EmailSignature;
 }): EmailContent {
-  const { companyName, customerName, quoteNumber } = params;
+  const { companyName, customerName, quoteNumber, signature } = params;
   return {
     subject: `Quotation ${quoteNumber} from ${companyName}`,
-    html: layout(companyName, documentSentBody(companyName, customerName, "quotation")),
+    html: layout(companyName, documentSentBody(companyName, customerName, "quotation", signature), signature),
   };
 }
 
@@ -81,8 +74,9 @@ export function paymentReceiptEmail(params: {
   amount: number;
   paymentDate: string;
   currency: string;
+  signature?: EmailSignature;
 }): EmailContent {
-  const { companyName, customerName, amount, paymentDate, currency } = params;
+  const { companyName, customerName, amount, paymentDate, currency, signature } = params;
   return {
     subject: `Payment received — ${companyName}`,
     html: layout(
@@ -91,7 +85,8 @@ export function paymentReceiptEmail(params: {
       <p>Dear ${escapeHtml(customerName)},</p>
       <p>We've received your payment of <strong>${formatCurrency(amount, currency)}</strong> on ${new Date(paymentDate).toLocaleDateString("en-ZA")}.</p>
       <p>Thank you.</p>
-      `
+      `,
+      signature
     ),
   };
 }
@@ -103,8 +98,9 @@ export function recurringInvoiceGeneratedEmail(params: {
   total: number;
   dueDate: string;
   currency: string;
+  signature?: EmailSignature;
 }): EmailContent {
-  const { companyName, customerName, invoiceNumber, total, dueDate, currency } = params;
+  const { companyName, customerName, invoiceNumber, total, dueDate, currency, signature } = params;
   return {
     subject: `Invoice ${invoiceNumber} from ${companyName}`,
     html: layout(
@@ -113,7 +109,8 @@ export function recurringInvoiceGeneratedEmail(params: {
       <p>Dear ${escapeHtml(customerName)},</p>
       <p>Your recurring invoice <strong>${escapeHtml(invoiceNumber)}</strong> for ${formatCurrency(total, currency)} is attached.</p>
       <p>Payment is due by ${new Date(dueDate).toLocaleDateString("en-ZA")}.</p>
-      `
+      `,
+      signature
     ),
   };
 }
@@ -124,8 +121,9 @@ export function creditNoteIssuedEmail(params: {
   creditNoteNumber: string;
   total: number;
   currency: string;
+  signature?: EmailSignature;
 }): EmailContent {
-  const { companyName, customerName, creditNoteNumber, total, currency } = params;
+  const { companyName, customerName, creditNoteNumber, total, currency, signature } = params;
   return {
     subject: `Credit note ${creditNoteNumber} from ${companyName}`,
     html: layout(
@@ -134,7 +132,8 @@ export function creditNoteIssuedEmail(params: {
       <p>Dear ${escapeHtml(customerName)},</p>
       <p>Please find attached credit note <strong>${escapeHtml(creditNoteNumber)}</strong> for ${formatCurrency(total, currency)}.</p>
       <p>This amount has been added to your account as available credit.</p>
-      `
+      `,
+      signature
     ),
   };
 }
@@ -177,8 +176,9 @@ export function paymentReminderEmail(params: {
   balanceDue: number;
   dueDate: string;
   currency: string;
+  signature?: EmailSignature;
 }): EmailContent {
-  const { companyName, customerName, invoiceNumber, balanceDue, dueDate, currency } = params;
+  const { companyName, customerName, invoiceNumber, balanceDue, dueDate, currency, signature } = params;
   return {
     subject: `Payment reminder: Invoice ${invoiceNumber} from ${companyName}`,
     html: layout(
@@ -191,7 +191,8 @@ export function paymentReminderEmail(params: {
         <tr><td style="padding: 4px 0; color: #555;">Due date</td><td style="text-align: right;">${new Date(dueDate).toLocaleDateString("en-ZA")}</td></tr>
       </table>
       <p>Please arrange payment at your earliest convenience. If you've already paid, please disregard this reminder.</p>
-      `
+      `,
+      signature
     ),
   };
 }
@@ -309,16 +310,18 @@ export function customerNoticeEmail(params: {
   companyName: string;
   subject: string;
   bodyHtml: string;
+  signature?: EmailSignature;
 }): EmailContent {
-  const { companyName, subject, bodyHtml } = params;
+  const { companyName, subject, bodyHtml, signature } = params;
   return {
     subject,
     html: layout(
       companyName,
       `
       ${bodyHtml}
-      <p>Kind regards,<br>${escapeHtml(companyName)}</p>
-      `
+      ${signature ? "" : `<p>Kind regards,<br>${escapeHtml(companyName)}</p>`}
+      `,
+      signature
     ),
   };
 }
