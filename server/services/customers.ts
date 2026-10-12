@@ -79,11 +79,11 @@ export async function listCustomers(params: CustomerSearchInput): Promise<Custom
 }
 
 /** For pickers (quote/invoice customer select) — not paginated, active only. */
-export async function listAllActiveCustomers(): Promise<Pick<Customer, "id" | "company_name">[]> {
+export async function listAllActiveCustomers(): Promise<Pick<Customer, "id" | "company_name" | "customer_reference">[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("customers")
-    .select("id, company_name")
+    .select("id, company_name, customer_reference")
     .eq("is_active", true)
     .order("company_name", { ascending: true });
   if (error) throw new Error("Unable to load customers.");

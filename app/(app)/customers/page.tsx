@@ -96,6 +96,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Account no.</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
@@ -110,6 +111,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                         {customer.company_name}
                       </Link>
                     </TableCell>
+                    <TableCell className="font-mono text-xs">{customer.customer_reference || "—"}</TableCell>
                     <TableCell>{customer.contact_person || "—"}</TableCell>
                     <TableCell>{customer.email || "—"}</TableCell>
                     <TableCell>{customer.phone || customer.mobile || "—"}</TableCell>

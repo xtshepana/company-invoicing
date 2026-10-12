@@ -40,8 +40,9 @@ export async function createCustomerAction(_prev: ActionResult, formData: FormDa
   }
 
   const supabase = await createSupabaseServerClient();
-  const customerReference =
-    parsed.data.customer_reference || (await generateCustomerAccountNumber(supabase, parsed.data.company_name));
+  // The account number is always generated here. Whatever the form posted for it is ignored: the field is only
+  // read-only in the browser, and a posted value must never be able to give a customer another customer's number.
+  const customerReference = await generateCustomerAccountNumber(supabase, parsed.data.company_name);
 
   const { data: inserted, error } = await supabase
     .from("customers")
@@ -78,9 +79,12 @@ export async function updateCustomerAction(_prev: ActionResult, formData: FormDa
 
   const supabase = await createSupabaseServerClient();
   const { data: before } = await supabase.from("customers").select("*").eq("id", id).single();
+  if (!before) return { error: "Customer not found." };
 
+  // An existing account number never changes (customers have quoted it on payments); the posted value is ignored.
+  // Only a customer that somehow has none yet gets one generated.
   const customerReference =
-    parsed.data.customer_reference || (await generateCustomerAccountNumber(supabase, parsed.data.company_name));
+    before.customer_reference || (await generateCustomerAccountNumber(supabase, parsed.data.company_name));
 
   const { error } = await supabase
     .from("customers")

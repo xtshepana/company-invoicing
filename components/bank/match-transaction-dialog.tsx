@@ -134,7 +134,14 @@ export function MatchTransactionDialog({
                     className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm"
                   >
                     <div>
-                      <div className="font-medium">{candidate.customers?.company_name ?? "Unknown customer"}</div>
+                      <div className="font-medium">
+                        {candidate.customers?.company_name ?? "Unknown customer"}
+                        {candidate.customers?.customer_reference ? (
+                          <span className="ml-2 font-mono text-xs font-normal text-muted-foreground">
+                            {candidate.customers.customer_reference}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="text-muted-foreground">
                         {new Date(candidate.payment_date).toLocaleDateString("en-ZA")}
                         {candidate.bank_reference ? ` · ${candidate.bank_reference}` : ""}
@@ -163,7 +170,17 @@ export function MatchTransactionDialog({
                     className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm"
                   >
                     <div>
-                      <div className="font-medium">{invoice.customers?.company_name ?? "Unknown customer"}</div>
+                      <div className="font-medium">
+                        {invoice.customers?.company_name ?? "Unknown customer"}
+                        {invoice.customers?.customer_reference ? (
+                          <span className="ml-2 font-mono text-xs font-normal text-muted-foreground">
+                            {invoice.customers.customer_reference}
+                          </span>
+                        ) : null}
+                        {invoice.accountMatches ? (
+                          <span className="ml-2 text-xs font-normal text-green-700">account number quoted</span>
+                        ) : null}
+                      </div>
                       <div className="text-muted-foreground">
                         {invoice.invoice_number} · due {new Date(invoice.due_date).toLocaleDateString("en-ZA")}
                       </div>
