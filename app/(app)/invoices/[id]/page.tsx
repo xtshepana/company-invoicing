@@ -80,6 +80,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
           </div>
           <p className="text-muted-foreground">
             {invoice.customers?.company_name}
+            {invoice.customers?.customer_reference ? ` · Account No ${invoice.customers.customer_reference}` : ""}
             {invoice.reference ? ` · Ref ${invoice.reference}` : ""}
           </p>
         </div>
