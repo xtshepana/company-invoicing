@@ -182,7 +182,7 @@ describe("what the document shows", () => {
     const q = text(quote());
     expect(q).toContain("Quoted For:");
     expect(q).toContain("Expiry");
-    expect(q).not.toContain("Banking Details");
+    expect(q).toContain("Banking Details"); // a quotation tells the customer where a deposit or first payment goes
     expect(q).not.toContain("Balance Due");
 
     const cn = text(creditNote());
@@ -240,9 +240,12 @@ describe("the banking details box", () => {
     expect(out).not.toContain("Branch Code:");
   });
 
-  it("is only on invoices, never on a quote or credit note", () => {
-    expect(flat(quote())).not.toContain("Payment Reference");
+  it("is on invoices and quotations, never on a credit note", () => {
+    expect(flat(invoice())).toContain("Payment Reference: TOK003");
+    expect(flat(quote())).toContain("Payment Reference: TOK003");
+    expect(flat(quote())).toContain("Banking Details");
     expect(flat(creditNote())).not.toContain("Payment Reference");
+    expect(flat(creditNote())).not.toContain("Banking Details");
   });
 });
 

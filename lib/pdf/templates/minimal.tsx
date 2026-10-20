@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { showsBankingDetails } from "@/lib/pdf/banking";
 import { documentTitle } from "@/lib/pdf/document-title";
 import { formatCurrency } from "@/lib/money";
 import { LetterheadFooter } from "@/lib/pdf/letterhead-footer";
@@ -139,7 +140,7 @@ export function MinimalTemplate({ data, settings }: TemplateProps) {
           ) : null}
         </View>
 
-        {data.docKind === "invoice" ? (
+        {showsBankingDetails(data.docKind) ? (
           <View style={st.twoColumn}>
             <View style={st.block}>
               <Text style={st.sectionTitle}>Banking Details</Text>

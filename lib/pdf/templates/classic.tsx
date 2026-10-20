@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
+import { showsBankingDetails } from "@/lib/pdf/banking";
 import { documentTitle } from "@/lib/pdf/document-title";
 import { pdfStyles as s } from "@/lib/pdf/styles";
 import { formatCurrency } from "@/lib/money";
@@ -99,7 +100,7 @@ export function ClassicTemplate({ data, settings }: TemplateProps) {
           ) : null}
         </View>
 
-        {data.docKind === "invoice" ? (
+        {showsBankingDetails(data.docKind) ? (
           <View style={s.twoColumn}>
             <View style={s.block}>
               <Text style={s.sectionTitle}>Banking Details</Text>
