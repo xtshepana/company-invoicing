@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { showsBankingDetails } from "@/lib/pdf/banking";
 import { documentTitle } from "@/lib/pdf/document-title";
 import { HEX_COLOR_PATTERN, readableTextColor, shadeColor } from "@/lib/color-utils";
 import { formatCurrency } from "@/lib/money";
@@ -315,7 +316,7 @@ export function CorporateTemplate({ data, settings }: TemplateProps) {
 
         <View style={[s.row, { marginTop: 10 }]} wrap={false}>
           <View style={{ flexGrow: 1, flexBasis: 0, marginRight: 12 }}>
-            {data.docKind === "invoice" && settings.bank_name ? (
+            {showsBankingDetails(data.docKind) && settings.bank_name ? (
               <View style={{ marginBottom: 8 }} wrap={false}>
                 <View style={s.bankBand}>
                   <Text style={s.bankBandText}>Banking Details</Text>
