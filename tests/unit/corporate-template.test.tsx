@@ -180,7 +180,8 @@ describe("what the document shows", () => {
     expect(inv).toContain("Amount Paid");
 
     const q = text(quote());
-    expect(q).toContain("Quoted For:");
+    expect(q).toContain("Delivery Address:"); // the box holds the delivery address, so it is labelled that on a quotation too
+    expect(q).not.toContain("Quoted For");
     expect(q).toContain("Expiry");
     expect(q).toContain("Banking Details"); // a quotation tells the customer where a deposit or first payment goes
     expect(q).not.toContain("Balance Due");

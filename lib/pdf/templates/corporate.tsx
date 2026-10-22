@@ -279,7 +279,7 @@ export function CorporateTemplate({ data, settings }: TemplateProps) {
           </View>
           <View style={s.colRight}>
             <View style={[s.box, s.partyBox]}>
-              <Text style={s.partyTitle}>{data.docKind === "quote" ? "Quoted For:" : "Delivery Address:"}</Text>
+              <Text style={s.partyTitle}>Delivery Address:</Text>
               {customer.address ? <Text style={s.line}>{customer.address}</Text> : null}
             </View>
           </View>
