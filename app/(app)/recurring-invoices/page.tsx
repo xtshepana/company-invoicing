@@ -4,12 +4,14 @@ import { redirect } from "next/navigation";
 import { Plus, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ListFilters } from "@/components/shared/list-filters";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
-import { listRecurringInvoices } from "@/server/services/recurring-invoices";
+import { getRecurringSummary, listRecurringInvoices } from "@/server/services/recurring-invoices";
+import { getCompanySettings } from "@/lib/config/system-settings";
+import { formatCurrency } from "@/lib/money";
 import { recurringInvoiceSearchSchema, RECURRING_FREQUENCY_LABELS } from "@/lib/validations/recurring-invoices";
 
 export const metadata: Metadata = { title: "Recurring Invoices" };
@@ -31,7 +33,14 @@ export default async function RecurringInvoicesPage({ searchParams }: RecurringI
   if (!hasModuleAccess(profile, "recurring_invoices")) redirect("/dashboard");
 
   const params = recurringInvoiceSearchSchema.parse(await searchParams);
-  const result = await listRecurringInvoices(params);
+  // The summary covers every recurring invoice matching the filters, not just the page being viewed.
+  const [result, summary, settings] = await Promise.all([
+    listRecurringInvoices(params),
+    getRecurringSummary(params),
+    getCompanySettings(),
+  ]);
+  const currency = settings.default_currency;
+  const filtered = Boolean(params.q) || params.status !== "active";
   const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
 
   function buildHref(page: number) {
@@ -71,6 +80,41 @@ export default async function RecurringInvoicesPage({ searchParams }: RecurringI
         ]}
       />
 
+      {summary.count > 0 ? (
+        <div className="space-y-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Recurring invoices</CardDescription>
+                <CardTitle className="text-3xl">{summary.count}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {summary.customerCount} {summary.customerCount === 1 ? "client" : "clients"}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>{filtered ? "Total per month, matching your filters" : "Total per month, all clients"}</CardDescription>
+                <CardTitle className="text-3xl">{formatCurrency(summary.monthlyTotal, currency)}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {summary.convertsToMonthly
+                  ? summary.byFrequency
+                      .map((group) => `${group.count} ${RECURRING_FREQUENCY_LABELS[group.frequency].toLowerCase()} (${formatCurrency(group.total, currency)} each cycle)`)
+                      .join(" · ")
+                  : "Added up from every client's monthly invoice"}
+              </CardContent>
+            </Card>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {filtered ? "Totals cover every recurring invoice matching the filters above, not just this page. " : ""}
+            {summary.convertsToMonthly
+              ? "Invoices billed more or less often than monthly are converted to a monthly equivalent."
+              : "Amounts include VAT only where it is charged."}
+          </p>
+        </div>
+      ) : null}
+
       <Card>
         <CardContent className="p-0">
           {result.rows.length === 0 ? (
@@ -95,6 +139,7 @@ export default async function RecurringInvoicesPage({ searchParams }: RecurringI
                   <TableHead>Description</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Frequency</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Next invoice</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -109,6 +154,7 @@ export default async function RecurringInvoicesPage({ searchParams }: RecurringI
                     </TableCell>
                     <TableCell>{recurring.customers?.company_name ?? "—"}</TableCell>
                     <TableCell>{RECURRING_FREQUENCY_LABELS[recurring.frequency]}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(recurring.amount, currency)}</TableCell>
                     <TableCell>{new Date(recurring.next_invoice_date).toLocaleDateString("en-ZA")}</TableCell>
                     <TableCell>
                       <Badge variant={STATUS_VARIANTS[recurring.status]}>{STATUS_LABELS[recurring.status]}</Badge>
