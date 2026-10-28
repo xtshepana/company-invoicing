@@ -1,0 +1,56 @@
+name: Daily job
+
+# Hostinger's Node.js hosting has no cron, so the app's daily job (create the due recurring invoices, send the payment
+# reminders and the 7th blocking list) otherwise only runs when someone opens the app. This calls it on a schedule.
+# The job is idempotent, so the second run is a safety net and a manual re-run is harmless.
+#
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   APP_URL      the live address, e.g. https://invoice.example.co.za (no trailing path)
+#   CRON_SECRET  the same value as CRON_SECRET in Hostinger's environment variables
+#
+# This repository is public, so the log prints counts only - never the response body, which can hold customer details.
+
+on:
+  schedule:
+    - cron: "0 4 * * *" # 06:00 South African time
+    - cron: "0 10 * * *" # 12:00 South African time, in case the first call failed
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Call /api/cron/daily
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::Set the APP_URL and CRON_SECRET repository secrets."
+            exit 1
+          fi
+
+          status=$(curl -sS --max-time 300 --retry 3 --retry-delay 30 --retry-all-errors \
+            -o response.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${APP_URL%/}/api/cron/daily")
+
+          echo "HTTP $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::The daily job returned HTTP $status."
+            exit 1
+          fi
+
+          jq -r '"Date: \(.date)",
+                 "Recurring invoices: \(.recurringInvoices.processed) processed, \(.recurringInvoices.generated) generated, \(.recurringInvoices.alreadyGenerated) already done, \(.recurringInvoices.errors | length) errors",
+                 "Reminders: \(.reminders | if .enabled == false then "off" else "stage \(.stage // "none today"), \(.customersEmailed) customers emailed, \(.customersNotEmailed) not emailed, \(.errors | length) errors" end)"' response.json \
+            || echo "(could not summarise the response)"
+
+          failures=$(jq '(.recurringInvoices.errors | length) + ((.reminders.errors // []) | length)' response.json)
+          if [ "$failures" != "0" ]; then
+            echo "::error::The daily job reported $failures error(s). Check the app."
+            exit 1
+          fi
