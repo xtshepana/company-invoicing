@@ -1,6 +1,8 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { deliverableEmail } from "@/lib/notices";
+import type { DraftToSend } from "@/lib/bulk-send";
 import type { InvoiceSearchInput } from "@/lib/validations/invoices";
 import type { Tables } from "@/types/database";
 
@@ -49,6 +51,32 @@ export async function listInvoices(params: InvoiceSearchInput): Promise<InvoiceL
   if (error) throw new Error("Unable to load invoices.");
 
   return { rows: (data ?? []) as InvoiceWithCustomer[], page: params.page, pageSize: PAGE_SIZE, totalCount: count ?? 0 };
+}
+
+/** Every draft invoice - not just the page being viewed - for the "send drafts" button. Capped at 500 as a sanity limit. */
+export async function listDraftsToSend(): Promise<DraftToSend[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("id, invoice_number, total, customers(company_name, email)")
+    .eq("status", "draft")
+    .order("invoice_number", { ascending: true })
+    .limit(500);
+  if (error) throw new Error("Unable to load draft invoices.");
+
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    invoice_number: string;
+    total: number;
+    customers: { company_name: string; email: string } | null;
+  }[];
+  return rows.map((row) => ({
+    id: row.id,
+    invoice_number: row.invoice_number,
+    customer_name: row.customers?.company_name ?? "Unknown customer",
+    email: deliverableEmail(row.customers?.email),
+    total: Number(row.total),
+  }));
 }
 
 export async function getInvoiceById(id: string): Promise<InvoiceWithItems | null> {
