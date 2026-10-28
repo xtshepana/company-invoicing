@@ -48,6 +48,12 @@ export const invoiceSettingsSchema = z.object({
   credit_note_next_number: z.coerce.number().int().positive(),
   default_payment_terms_days: z.coerce.number().int().min(0).max(365),
   vat_registered: z.boolean(),
+  /** Day of the month (1-28) every month-based recurring invoice is created on. Empty = no fixed day. */
+  recurring_billing_day: z
+    .union([z.literal(""), z.coerce.number().int("Enter a whole day, 1 to 28.").min(1, "The day must be 1 to 28.").max(28, "The day must be 1 to 28.")])
+    .transform((value) => (value === "" ? null : value)),
+  /** Invoices generated from recurring invoices fall due on the last day of the month they are issued. */
+  recurring_due_at_month_end: z.boolean(),
   default_vat_rate: z.coerce.number().min(0).max(100),
   default_prices_include_vat: z.boolean(),
   default_currency: z.string().trim().length(3),

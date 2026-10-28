@@ -34,6 +34,7 @@ export default async function NewRecurringInvoicePage({ searchParams }: NewRecur
       </div>
       <RecurringInvoiceForm
         customers={customers}
+        billingDay={settings.recurring_billing_day}
         products={products}
         defaultVatRate={settings.default_vat_rate}
         defaultCurrency={settings.default_currency}

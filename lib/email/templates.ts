@@ -197,101 +197,203 @@ export function paymentReminderEmail(params: {
   };
 }
 
-const REMINDER_CHECKPOINT_LABEL: Record<"day_30" | "day_5" | "day_10", string> = {
-  day_30: "30th (due)",
-  day_5: "5th (overdue)",
-  day_10: "10th (final notice)",
+export type ReminderEmailStage = "reminder_1" | "reminder_2";
+
+const REMINDER_STAGE_LABEL: Record<ReminderEmailStage, string> = {
+  reminder_1: "Reminder 1 (last day of the month)",
+  reminder_2: "Final reminder (the 5th)",
 };
 
-export interface ReminderReviewItem {
-  accountNumber: string;
-  customerName: string;
+export interface ReminderInvoiceLine {
   invoiceNumber: string;
-  balanceDue: number;
   dueDate: string;
+  balanceDue: number;
 }
 
-/**
- * Safety gate: reminders are never emailed to clients directly. Instead,
- * whoever's in arrears at a given checkpoint gets listed in one digest to a
- * human (company_settings.reminder_review_email) who decides who actually
- * gets reminded, and how.
- */
-export function paymentReminderReviewEmail(params: {
-  companyName: string;
-  checkpoint: "day_30" | "day_5" | "day_10";
-  currency: string;
-  items: ReminderReviewItem[];
-}): EmailContent {
-  const { companyName, checkpoint, currency, items } = params;
-  const label = REMINDER_CHECKPOINT_LABEL[checkpoint];
+const TH = "padding: 6px 8px; border-bottom: 2px solid #1a1a1a;";
+const TD = "padding: 6px 8px; border-bottom: 1px solid #e5e5e5;";
 
-  const rows = items
+function invoiceRows(invoices: ReminderInvoiceLine[], currency: string): string {
+  return invoices
     .map(
-      (item) => `
+      (invoice) => `
       <tr>
-        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5;">${escapeHtml(item.accountNumber || "—")}</td>
-        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5;">${escapeHtml(item.customerName)}</td>
-        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5;">${escapeHtml(item.invoiceNumber)}</td>
-        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5; text-align: right;">${formatCurrency(item.balanceDue, currency)}</td>
-        <td style="padding: 6px 8px; border-bottom: 1px solid #e5e5e5; text-align: right;">${new Date(item.dueDate).toLocaleDateString("en-ZA")}</td>
+        <td style="${TD}">${escapeHtml(invoice.invoiceNumber)}</td>
+        <td style="${TD} text-align: right;">${new Date(invoice.dueDate).toLocaleDateString("en-ZA")}</td>
+        <td style="${TD} text-align: right;">${formatCurrency(invoice.balanceDue, currency)}</td>
       </tr>`
     )
     .join("");
+}
+
+/**
+ * The payment reminder a customer receives on the last day of the month (reminder 1) and on the 5th (the final
+ * reminder). One email per customer listing every invoice of theirs that is overdue. It carries the account number as
+ * the payment reference and, when the company has complete bank details, where to pay. Written to be firm but
+ * courteous; it does not threaten any particular consequence, since that is the company's call.
+ */
+export function customerPaymentReminderEmail(params: {
+  companyName: string;
+  signature?: EmailSignature;
+  customerName: string;
+  accountNumber: string;
+  invoices: ReminderInvoiceLine[];
+  currency: string;
+  stage: ReminderEmailStage;
+  /** Complete bank details as display lines (see bankDetailsLines in lib/notices.ts), if the company has them. */
+  bankLines?: string[];
+}): EmailContent {
+  const { companyName, signature, customerName, accountNumber, invoices, currency, stage, bankLines } = params;
+  const total = invoices.reduce((sum, invoice) => sum + invoice.balanceDue, 0);
+  const many = invoices.length > 1;
+  const final = stage === "reminder_2";
+
+  const intro = final
+    ? `This is our <strong>final reminder</strong>. ${many ? "The invoices below are" : "The invoice below is"} overdue and our records show ${many ? "they are" : "it is"} still unpaid. Please make payment today.`
+    : `This is a reminder that ${many ? "the invoices below are" : "the invoice below is"} now due, and our records show ${many ? "they are" : "it is"} still unpaid.`;
 
   return {
-    subject: `Payment reminder review — ${items.length} client${items.length === 1 ? "" : "s"} in arrears (${label})`,
+    subject: final
+      ? `Final reminder from ${companyName}: payment outstanding`
+      : `Payment reminder from ${companyName}: ${many ? `${invoices.length} unpaid invoices` : `invoice ${invoices[0]?.invoiceNumber ?? ""} is due`}`,
     html: layout(
       companyName,
       `
-      <p>The following ${items.length === 1 ? "client is" : "clients are"} in arrears as of the
-      <strong>${label}</strong> checkpoint. Nothing has been emailed to them automatically — review and
-      send reminders manually where appropriate.</p>
-      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px;">
+      <p>Dear ${escapeHtml(customerName)},</p>
+      <p>${intro}</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
         <tr>
-          <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #1a1a1a;">Account No.</th>
-          <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #1a1a1a;">Customer</th>
-          <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #1a1a1a;">Invoice</th>
-          <th style="padding: 6px 8px; text-align: right; border-bottom: 2px solid #1a1a1a;">Amount due</th>
-          <th style="padding: 6px 8px; text-align: right; border-bottom: 2px solid #1a1a1a;">Due date</th>
+          <th style="${TH} text-align: left;">Invoice</th>
+          <th style="${TH} text-align: right;">Due date</th>
+          <th style="${TH} text-align: right;">Amount due</th>
         </tr>
-        ${rows}
+        ${invoiceRows(invoices, currency)}
+        ${many ? `<tr><td colspan="2" style="padding: 8px; text-align: right; font-weight: bold;">Total</td><td style="padding: 8px; text-align: right; font-weight: bold;">${formatCurrency(total, currency)}</td></tr>` : ""}
       </table>
+      ${accountNumber ? `<p>Please use your account number, <strong>${escapeHtml(accountNumber)}</strong>, as the payment reference.</p>` : ""}
+      ${bankLines && bankLines.length > 0 ? `<p style="background: #f5f5f5; border-left: 3px solid #1a1a1a; padding: 10px 14px;">${bankLines.map(escapeHtml).join("<br>")}</p>` : ""}
+      <p>If you have already paid, please send us your proof of payment and disregard this reminder.</p>
+      `,
+      signature
+    ),
+  };
+}
+
+export interface ReminderSummaryRow {
+  accountNumber: string;
+  customerName: string;
+  invoiceNumbers: string[];
+  total: number;
+  /** Set for a customer that could not be emailed: why. */
+  reason?: string;
+}
+
+/**
+ * Sent to the owner after each reminder run: who was emailed and who could not be (no valid address, or the email
+ * failed), so nobody silently drops out of the process.
+ */
+export function reminderSummaryEmail(params: {
+  companyName: string;
+  stage: ReminderEmailStage;
+  currency: string;
+  emailed: ReminderSummaryRow[];
+  notEmailed: ReminderSummaryRow[];
+}): EmailContent {
+  const { companyName, stage, currency, emailed, notEmailed } = params;
+  const label = REMINDER_STAGE_LABEL[stage];
+
+  const table = (rows: ReminderSummaryRow[], showReason: boolean) => `
+      <table style="width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px;">
+        <tr>
+          <th style="${TH} text-align: left;">Account No.</th>
+          <th style="${TH} text-align: left;">Customer</th>
+          <th style="${TH} text-align: left;">Invoices</th>
+          <th style="${TH} text-align: right;">Amount due</th>
+          ${showReason ? `<th style="${TH} text-align: left;">Why not emailed</th>` : ""}
+        </tr>
+        ${rows
+          .map(
+            (row) => `
+        <tr>
+          <td style="${TD}">${escapeHtml(row.accountNumber || "—")}</td>
+          <td style="${TD}">${escapeHtml(row.customerName)}</td>
+          <td style="${TD}">${escapeHtml(row.invoiceNumbers.join(", "))}</td>
+          <td style="${TD} text-align: right;">${formatCurrency(row.total, currency)}</td>
+          ${showReason ? `<td style="${TD}">${escapeHtml(row.reason ?? "")}</td>` : ""}
+        </tr>`
+          )
+          .join("")}
+      </table>`;
+
+  return {
+    subject: `${label}: ${emailed.length} customer${emailed.length === 1 ? "" : "s"} emailed${notEmailed.length > 0 ? `, ${notEmailed.length} could not be` : ""}`,
+    html: layout(
+      companyName,
+      `
+      <p><strong>${label}</strong> has been sent.</p>
+      <p>${emailed.length} customer${emailed.length === 1 ? " was" : "s were"} emailed their reminder${emailed.length === 0 ? "." : ":"}</p>
+      ${emailed.length > 0 ? table(emailed, false) : ""}
+      ${notEmailed.length > 0 ? `<p><strong>${notEmailed.length} could not be emailed</strong> - please follow these up yourself:</p>${table(notEmailed, true)}` : ""}
       `
     ),
   };
 }
 
-/**
- * A separate, more urgent internal notice after the final reminder
- * checkpoint if an invoice is still unpaid — for the accounts/admin team
- * to review the account for suspension. Distinct from the general
- * paymentReminderReviewEmail digest: this one flags a single invoice that's
- * gone all the way to the final checkpoint with no payment.
- */
-export function accountBlockNoticeEmail(params: {
-  companyName: string;
+export interface BlockingListItem {
+  accountNumber: string;
   customerName: string;
-  invoiceNumber: string;
-  balanceDue: number;
-  dueDate: string;
+  email: string;
+  invoices: ReminderInvoiceLine[];
+  balance: number;
+  oldestDueDate: string;
+}
+
+/**
+ * Sent to the owner on the 7th: every account that still has an unpaid invoice after both reminders, in one list, to
+ * review for blocking. One email for the whole list - not one per invoice.
+ */
+export function accountBlockingListEmail(params: {
+  companyName: string;
   currency: string;
+  items: BlockingListItem[];
 }): EmailContent {
-  const { companyName, customerName, invoiceNumber, balanceDue, dueDate, currency } = params;
+  const { companyName, currency, items } = params;
+  const total = items.reduce((sum, item) => sum + item.balance, 0);
+
+  const rows = items
+    .map(
+      (item) => `
+      <tr>
+        <td style="${TD}">${escapeHtml(item.accountNumber || "—")}</td>
+        <td style="${TD}">${escapeHtml(item.customerName)}<br><span style="color: #888; font-size: 12px;">${escapeHtml(item.email || "no email address")}</span></td>
+        <td style="${TD}">${escapeHtml(item.invoices.map((invoice) => invoice.invoiceNumber).join(", "))}</td>
+        <td style="${TD} text-align: right;">${new Date(item.oldestDueDate).toLocaleDateString("en-ZA")}</td>
+        <td style="${TD} text-align: right; font-weight: bold;">${formatCurrency(item.balance, currency)}</td>
+      </tr>`
+    )
+    .join("");
+
   return {
-    subject: `Action needed: ${customerName} still unpaid — review for suspension`,
+    subject: `Accounts to block: ${items.length} unpaid (${formatCurrency(total, currency)})`,
     html: layout(
       companyName,
       `
-      <p>No payment has been detected for <strong>${escapeHtml(customerName)}</strong> after the final
-      reminder on invoice <strong>${escapeHtml(invoiceNumber)}</strong>.</p>
-      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-        <tr><td style="padding: 4px 0; color: #555;">Customer</td><td style="text-align: right; font-weight: bold;">${escapeHtml(customerName)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #555;">Invoice</td><td style="text-align: right;">${escapeHtml(invoiceNumber)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #555;">Amount overdue</td><td style="text-align: right; font-weight: bold;">${formatCurrency(balanceDue, currency)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #555;">Due date</td><td style="text-align: right;">${new Date(dueDate).toLocaleDateString("en-ZA")}</td></tr>
+      <p>These <strong>${items.length}</strong> account${items.length === 1 ? " still has" : "s still have"} unpaid invoices after both payment
+      reminders. Please review ${items.length === 1 ? "it" : "them"} for blocking.</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px;">
+        <tr>
+          <th style="${TH} text-align: left;">Account No.</th>
+          <th style="${TH} text-align: left;">Customer</th>
+          <th style="${TH} text-align: left;">Unpaid invoices</th>
+          <th style="${TH} text-align: right;">Oldest due</th>
+          <th style="${TH} text-align: right;">Balance</th>
+        </tr>
+        ${rows}
+        <tr>
+          <td colspan="4" style="padding: 8px; text-align: right; font-weight: bold;">Total unpaid</td>
+          <td style="padding: 8px; text-align: right; font-weight: bold;">${formatCurrency(total, currency)}</td>
+        </tr>
       </table>
-      <p>Please review this account for suspension.</p>
       `
     ),
   };

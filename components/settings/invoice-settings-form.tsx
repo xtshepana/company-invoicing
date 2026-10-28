@@ -18,6 +18,7 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
   const lastState = useRef(state);
   const [pricesIncludeVat, setPricesIncludeVat] = useState(settings.default_prices_include_vat);
   const [remindersEnabled, setRemindersEnabled] = useState(settings.payment_reminders_enabled);
+  const [dueAtMonthEnd, setDueAtMonthEnd] = useState(settings.recurring_due_at_month_end);
   const [vatRegistered, setVatRegistered] = useState(settings.vat_registered);
 
   useEffect(() => {
@@ -99,6 +100,31 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
           />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="recurring_billing_day">Recurring billing day</Label>
+          <Input
+            id="recurring_billing_day"
+            name="recurring_billing_day"
+            type="number"
+            min={1}
+            max={28}
+            defaultValue={settings.recurring_billing_day ?? ""}
+            placeholder="e.g. 26"
+          />
+          <p className="text-xs text-muted-foreground">
+            Every monthly recurring invoice is created on this day of the month (1 to 28). A new recurring invoice
+            starts on it, and each one moves onto it after its next invoice is created. Leave blank for no fixed day.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 pt-6">
+          <Switch
+            id="recurring_due_at_month_end"
+            name="recurring_due_at_month_end"
+            checked={dueAtMonthEnd}
+            onCheckedChange={setDueAtMonthEnd}
+          />
+          <Label htmlFor="recurring_due_at_month_end">Recurring invoices fall due on the last day of the month</Label>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="default_vat_rate">Default VAT rate (%)</Label>
           <Input
             id="default_vat_rate"
@@ -140,7 +166,7 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
             checked={remindersEnabled}
             onCheckedChange={setRemindersEnabled}
           />
-          <Label htmlFor="payment_reminders_enabled">Send payment reminder digests</Label>
+          <Label htmlFor="payment_reminders_enabled">Send payment reminders</Label>
         </div>
         <div className="space-y-2">
           <Label htmlFor="reminder_review_email">Reminder review email</Label>
@@ -152,8 +178,10 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
             placeholder="you@yourcompany.co.za"
           />
           <p className="text-xs text-muted-foreground">
-            On the 30th, 5th, and 10th, a digest of everyone in arrears (with account numbers) goes here for
-            review — reminders are never emailed to clients directly. Left blank, nothing is sent at all.
+            Customers with an unpaid, overdue invoice are emailed a reminder on the last day of every month and a
+            final one on the 5th. This address gets a summary of who was reminded, and on the 7th one list of every
+            account still unpaid, to review for blocking. Left blank, customers are still reminded but no summary or
+            list is sent (the list falls back to the accounts email below).
           </p>
         </div>
         <div className="space-y-2">
@@ -167,8 +195,7 @@ export function InvoiceSettingsForm({ settings }: { settings: CompanySettings })
           />
           <p className="text-xs text-muted-foreground">
             Gets a copy (CC) of every invoice, quote, credit note, receipt and payment reminder sent to a
-            customer, plus an internal notice when a customer still hasn&apos;t paid after the final reminder,
-            so the account can be reviewed for suspension. Left blank, no copies are sent.
+            customer. Left blank, no copies are sent.
           </p>
         </div>
       </div>

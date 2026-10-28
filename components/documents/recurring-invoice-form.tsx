@@ -17,12 +17,14 @@ import {
 import type { ActionResult } from "@/server/actions/auth-actions";
 import type { RecurringInvoiceWithItems } from "@/server/services/recurring-invoices";
 import { RECURRING_FREQUENCIES, RECURRING_FREQUENCY_LABELS } from "@/lib/validations/recurring-invoices";
+import { applyBillingDay } from "@/lib/billing-schedule";
 
 const initialState: ActionResult = {};
 
 export function RecurringInvoiceForm({
   recurringInvoice,
   customers,
+  billingDay = null,
   products,
   defaultVatRate,
   defaultCurrency,
@@ -31,6 +33,8 @@ export function RecurringInvoiceForm({
 }: {
   recurringInvoice?: RecurringInvoiceWithItems;
   customers: SelectableCustomer[];
+  /** Company billing day (e.g. 26): month-based schedules start on it. */
+  billingDay?: number | null;
   products: EditableProduct[];
   defaultVatRate: number;
   defaultCurrency: string;
@@ -47,7 +51,7 @@ export function RecurringInvoiceForm({
   const [autoGenerate, setAutoGenerate] = useState(recurringInvoice?.auto_generate ?? true);
   const [autoSendEmail, setAutoSendEmail] = useState(recurringInvoice?.auto_send_email ?? false);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = applyBillingDay(new Date().toISOString().slice(0, 10), "monthly", billingDay);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -109,6 +113,12 @@ export function RecurringInvoiceForm({
             <div className="space-y-2">
               <Label htmlFor="start_date">Start date</Label>
               <Input id="start_date" name="start_date" type="date" defaultValue={today} required />
+              {billingDay ? (
+                <p className="text-xs text-muted-foreground">
+                  Monthly, quarterly and yearly invoices are always created on the {billingDay}th. A start date on another
+                  day is moved to the next {billingDay}th.
+                </p>
+              ) : null}
             </div>
           ) : null}
           <div className="space-y-2">

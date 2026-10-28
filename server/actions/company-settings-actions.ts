@@ -21,6 +21,7 @@ function formToObject(formData: FormData): Record<string, unknown> {
       key === "default_prices_include_vat" ||
       key === "payment_reminders_enabled" ||
       key === "vat_registered" ||
+      key === "recurring_due_at_month_end" ||
       key === "show_company_name"
     ) {
       obj[key] = value === "on" || value === "true";
@@ -31,6 +32,7 @@ function formToObject(formData: FormData): Record<string, unknown> {
   if (!("default_prices_include_vat" in obj)) obj.default_prices_include_vat = false;
   if (!("payment_reminders_enabled" in obj)) obj.payment_reminders_enabled = false;
   if (!("vat_registered" in obj)) obj.vat_registered = false;
+  if (!("recurring_due_at_month_end" in obj)) obj.recurring_due_at_month_end = false;
   if (!("show_company_name" in obj)) obj.show_company_name = false;
   return obj;
 }
