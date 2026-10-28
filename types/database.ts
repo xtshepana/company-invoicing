@@ -241,6 +241,8 @@ export type Database = {
           bank_name: string
           brand_color: string | null
           brand_color_secondary: string | null
+          recurring_billing_day: number | null
+          recurring_due_at_month_end: boolean
           company_name: string
           credit_note_next_number: number
           credit_note_prefix: string
@@ -282,6 +284,8 @@ export type Database = {
           bank_name?: string
           brand_color?: string | null
           brand_color_secondary?: string | null
+          recurring_billing_day?: number | null
+          recurring_due_at_month_end?: boolean
           company_name?: string
           credit_note_next_number?: number
           credit_note_prefix?: string
@@ -323,6 +327,8 @@ export type Database = {
           bank_name?: string
           brand_color?: string | null
           brand_color_secondary?: string | null
+          recurring_billing_day?: number | null
+          recurring_due_at_month_end?: boolean
           company_name?: string
           credit_note_next_number?: number
           credit_note_prefix?: string

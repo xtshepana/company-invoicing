@@ -42,6 +42,8 @@ export const getCompanySettings = cache(async (): Promise<CompanySettings> => {
       logo_url: null,
       brand_color: null,
       brand_color_secondary: null,
+      recurring_billing_day: null,
+      recurring_due_at_month_end: false,
       bank_name: "",
       bank_account_name: "",
       bank_account_number: "",

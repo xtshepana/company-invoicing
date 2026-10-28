@@ -6,6 +6,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireModuleAccess } from "@/server/services/auth";
 import { recordAuditLog } from "@/server/services/audit";
 import { recurringInvoiceSchema, RECURRING_STATUSES } from "@/lib/validations/recurring-invoices";
+import { getCompanySettings } from "@/lib/config/system-settings";
+import { applyBillingDay } from "@/lib/billing-schedule";
 import type { ActionResult } from "@/server/actions/auth-actions";
 import type { Json } from "@/types/database";
 import type { LineItemInput } from "@/lib/validations/line-items";
@@ -51,13 +53,19 @@ export async function createRecurringInvoiceAction(_prev: ActionResult, formData
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.data.start_date)) return { error: "Enter a valid start date." };
+
+  // The company's billing day (e.g. the 26th): a month-based schedule starts on it, whatever date was picked.
+  const settings = await getCompanySettings();
+  const startDate = applyBillingDay(parsed.data.start_date, parsed.data.frequency, settings.recurring_billing_day);
+
   const supabase = await createSupabaseServerClient();
   const { data: id, error } = await supabase.rpc("create_recurring_invoice", {
     p_customer_id: parsed.data.customer_id,
     p_description: parsed.data.description,
     p_frequency: parsed.data.frequency,
     p_custom_interval_days: parsed.data.custom_interval_days === "" ? null : parsed.data.custom_interval_days,
-    p_start_date: parsed.data.start_date,
+    p_start_date: startDate,
     p_end_date: parsed.data.end_date || null,
     p_payment_terms_days: parsed.data.payment_terms_days === "" ? null : parsed.data.payment_terms_days,
     p_prices_include_vat: parsed.data.prices_include_vat,
