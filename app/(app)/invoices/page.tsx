@@ -9,7 +9,8 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { ListFilters } from "@/components/shared/list-filters";
 import { PaginationBar } from "@/components/shared/pagination-bar";
 import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
-import { listInvoices } from "@/server/services/invoices";
+import { listDraftsToSend, listInvoices } from "@/server/services/invoices";
+import { BulkSendDraftsDialog } from "@/components/documents/bulk-send-drafts-dialog";
 import { invoiceSearchSchema } from "@/lib/validations/invoices";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
@@ -49,7 +50,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
   if (!hasModuleAccess(profile, "invoices")) redirect("/dashboard");
 
   const params = invoiceSearchSchema.parse(await searchParams);
-  const [result, settings] = await Promise.all([listInvoices(params), getCompanySettings()]);
+  const [result, settings, drafts] = await Promise.all([listInvoices(params), getCompanySettings(), listDraftsToSend()]);
   const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
 
   function buildHref(page: number) {
@@ -67,9 +68,12 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
           <h1 className="text-2xl font-semibold tracking-tight">Invoices</h1>
           <p className="text-muted-foreground">Bill your customers and track what&apos;s owed.</p>
         </div>
-        <Button render={<Link href="/invoices/new" />} nativeButton={false}>
-          <Plus /> New Invoice
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <BulkSendDraftsDialog drafts={drafts} currency={settings.default_currency} />
+          <Button render={<Link href="/invoices/new" />} nativeButton={false}>
+            <Plus /> New Invoice
+          </Button>
+        </div>
       </div>
 
       <ListFilters

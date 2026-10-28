@@ -9,7 +9,10 @@ import { recordAuditLog } from "@/server/services/audit";
 import { invoiceSchema } from "@/lib/validations/invoices";
 import { computeDocumentTotals } from "@/lib/documents";
 import { getCompanySettings } from "@/lib/config/system-settings";
-import { sendEmail } from "@/server/services/email";
+import { sendEmail, type SendEmailResult } from "@/server/services/email";
+import { mapWithConcurrency } from "@/lib/concurrency";
+import { deliverableEmail } from "@/lib/notices";
+import { BULK_SEND_BATCH_SIZE, type BulkSendResult } from "@/lib/bulk-send";
 import { invoiceSentEmail, paymentReminderEmail } from "@/lib/email/templates";
 import { emailSignatureFromSettings } from "@/lib/email/signature";
 import { renderInvoicePdf } from "@/lib/pdf/render-invoice";
@@ -180,6 +183,89 @@ export async function sendInvoiceEmailAction(_prev: ActionResult, formData: Form
   return { success: true };
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BULK_SEND_CONCURRENCY = 2; // Resend's rate limit is shared and external (2 requests/second) - same cap the daily job uses
+
+/**
+ * Emails one small batch of draft invoices (the "send drafts" button calls this repeatedly, a few at a time). For each
+ * invoice that is still a draft with one valid customer address: it is marked Sent, emailed with its PDF (and the
+ * accounts copy), and recorded. If the email does not go out, the invoice is put back to Draft and reported as failed so
+ * it can be retried - an invoice is never left marked Sent without having been emailed. Anything no longer a draft is
+ * left alone, so clicking twice, or two people clicking, can never email an invoice twice.
+ */
+export async function sendDraftInvoiceBatchAction(ids: string[]): Promise<{ results: BulkSendResult[]; error?: string }> {
+  const actor = await requireModuleAccess("invoices");
+  if (!Array.isArray(ids) || ids.length === 0) return { results: [], error: "No invoices to send." };
+  if (ids.length > BULK_SEND_BATCH_SIZE) return { results: [], error: `Send at most ${BULK_SEND_BATCH_SIZE} invoices at a time.` };
+  if (!ids.every((id) => typeof id === "string" && UUID_PATTERN.test(id))) return { results: [], error: "Invalid invoice." };
+  const uniqueIds = [...new Set(ids)];
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("id, invoice_number, status, customers(company_name, email)")
+    .in("id", uniqueIds);
+  if (error) return { results: [], error: "Unable to load the invoices. Please try again." };
+
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    invoice_number: string;
+    status: string;
+    customers: { company_name: string; email: string } | null;
+  }[];
+  const byId = new Map(rows.map((row) => [row.id, row]));
+
+  const results = await mapWithConcurrency(uniqueIds, BULK_SEND_CONCURRENCY, async (id): Promise<BulkSendResult> => {
+    const row = byId.get(id);
+    const base = { invoiceId: id, invoiceNumber: row?.invoice_number ?? id, customerName: row?.customers?.company_name ?? "Unknown customer" };
+
+    if (!row) return { ...base, status: "skipped", detail: "Invoice not found." };
+    if (row.status !== "draft") return { ...base, status: "skipped", detail: `Already ${row.status.replace("_", " ")}.` };
+    if (!deliverableEmail(row.customers?.email)) {
+      return { ...base, status: "no_email", detail: "The customer has no single valid email address." };
+    }
+
+    // Claim the draft first; zero rows changed means someone else got there already.
+    const { data: claimed, error: claimError } = await supabase
+      .from("invoices")
+      .update({ status: "sent" })
+      .eq("id", id)
+      .eq("status", "draft")
+      .select("id");
+    if (claimError) return { ...base, status: "failed", detail: "Could not update the invoice." };
+    if (!claimed || claimed.length === 0) return { ...base, status: "skipped", detail: "Changed by someone else just now." };
+
+    let outcome: SendEmailResult | null;
+    try {
+      outcome = await sendInvoiceSentEmail(id);
+    } catch (err) {
+      outcome = { status: "failed", error: err instanceof Error ? err.message : "Unknown error." };
+    }
+
+    if (!outcome || outcome.status !== "sent") {
+      // Not delivered: put it back so it is not wrongly shown as sent, and can simply be retried.
+      await supabase.from("invoices").update({ status: "draft" }).eq("id", id).eq("status", "sent");
+      const why =
+        outcome?.status === "skipped"
+          ? "Email sending isn't set up, so nothing was sent."
+          : outcome?.error || "The email could not be sent.";
+      return { ...base, status: "failed", detail: `${why} It is still a draft.` };
+    }
+
+    await recordAuditLog({
+      userId: actor.id,
+      action: "invoice.marked_sent",
+      entity: "invoices",
+      entityId: id,
+      newValue: { emailed: true, bulk: true } as unknown as Json,
+    });
+    return { ...base, status: "sent" };
+  });
+
+  revalidatePath("/invoices");
+  return { results };
+}
+
 /**
  * Marks a draft invoice as sent WITHOUT emailing anyone - for companies that
  * send their invoices themselves (downloaded PDF, their own mailbox, WhatsApp,
@@ -229,14 +315,14 @@ export async function markInvoiceSentAction(_prev: ActionResult, formData: FormD
  * the caller's response. Returns false (without erroring) when there's no
  * customer email to send to, so callers can decide how to surface that.
  */
-async function sendInvoiceSentEmail(invoiceId: string): Promise<boolean> {
+async function sendInvoiceSentEmail(invoiceId: string): Promise<SendEmailResult | null> {
   const admin = createAdminSupabaseClient();
   const { data: invoice } = await admin
     .from("invoices")
     .select("*, customers(*), invoice_items(*)")
     .eq("id", invoiceId)
     .single();
-  if (!invoice?.customers?.email) return false;
+  if (!invoice?.customers?.email) return null;
 
   const settings = await getCompanySettings();
   const pdfBuffer = await renderInvoicePdf(invoice as unknown as InvoiceWithItems, settings);
@@ -247,7 +333,7 @@ async function sendInvoiceSentEmail(invoiceId: string): Promise<boolean> {
     invoiceNumber: invoice.invoice_number,
   });
 
-  await sendEmail({
+  return sendEmail({
     to: invoice.customers.email,
     ...content,
     emailType: "invoice_sent",
@@ -257,7 +343,6 @@ async function sendInvoiceSentEmail(invoiceId: string): Promise<boolean> {
     cc: settings.accounts_notification_email,
     fromName: settings.company_name,
   });
-  return true;
 }
 
 /**
