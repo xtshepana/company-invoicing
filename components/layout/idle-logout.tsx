@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { idleLogoutAction } from "@/server/actions/auth-actions";
 import { getIdleState } from "@/lib/idle";
+import { runIdleSignOut } from "@/lib/idle-signout";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const STORAGE_KEY = "idle-logout:last-activity";
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"] as const;
@@ -58,7 +60,15 @@ export function IdleLogout() {
       if (state.status === "expired") {
         if (!signedOutRef.current) {
           signedOutRef.current = true;
-          void idleLogoutAction();
+          runIdleSignOut({
+            serverSignOut: idleLogoutAction,
+            browserSignOut: () => createSupabaseBrowserClient().auth.signOut(),
+            // A full page load, not a router push: the tab may be on an old build whose client router can't be trusted.
+            goToLogin: () => {
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload on purpose
+              window.location.href = "/login?idle=1";
+            },
+          });
         }
         return;
       }
