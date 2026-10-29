@@ -148,6 +148,7 @@ export default async function RecurringInvoicesPage({ searchParams }: RecurringI
                   <TableHead>Customer</TableHead>
                   <TableHead>Frequency</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Last invoice</TableHead>
                   <TableHead>Next invoice</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -163,6 +164,11 @@ export default async function RecurringInvoicesPage({ searchParams }: RecurringI
                     <TableCell>{recurring.customers?.company_name ?? "—"}</TableCell>
                     <TableCell>{RECURRING_FREQUENCY_LABELS[recurring.frequency]}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatCurrency(recurring.amount, currency)}</TableCell>
+                    <TableCell>
+                      {recurring.last_generated_date
+                        ? new Date(recurring.last_generated_date).toLocaleDateString("en-ZA")
+                        : "Never"}
+                    </TableCell>
                     <TableCell>{new Date(recurring.next_invoice_date).toLocaleDateString("en-ZA")}</TableCell>
                     <TableCell>
                       <Badge variant={STATUS_VARIANTS[recurring.status]}>{STATUS_LABELS[recurring.status]}</Badge>
