@@ -12,6 +12,7 @@ import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
 import { listDraftsToSend, listInvoices } from "@/server/services/invoices";
 import { BulkSendDraftsDialog } from "@/components/documents/bulk-send-drafts-dialog";
 import { invoiceSearchSchema } from "@/lib/validations/invoices";
+import { DEFAULT_SORT, INVOICE_SORT_OPTIONS } from "@/lib/list-sort";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 
@@ -57,6 +58,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     const sp = new URLSearchParams();
     if (params.q) sp.set("q", params.q);
     if (params.status !== "all") sp.set("status", params.status);
+    if (params.sort !== DEFAULT_SORT) sp.set("sort", params.sort);
     sp.set("page", String(page));
     return `/invoices?${sp.toString()}`;
   }
@@ -88,6 +90,12 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
               { value: "overdue", label: "Overdue" },
               ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
             ],
+          },
+          {
+            param: "sort",
+            value: params.sort,
+            options: INVOICE_SORT_OPTIONS.map(({ value, label }) => ({ value, label })),
+            className: "w-full sm:w-60",
           },
         ]}
       />

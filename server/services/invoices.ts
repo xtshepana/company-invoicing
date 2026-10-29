@@ -3,6 +3,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { deliverableEmail } from "@/lib/notices";
 import type { DraftToSend } from "@/lib/bulk-send";
+import { findSort, INVOICE_SORT_OPTIONS } from "@/lib/list-sort";
 import type { InvoiceSearchInput } from "@/lib/validations/invoices";
 import type { Tables } from "@/types/database";
 
@@ -28,11 +29,14 @@ export async function listInvoices(params: InvoiceSearchInput): Promise<InvoiceL
   const from = (params.page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
+  const sort = findSort(INVOICE_SORT_OPTIONS, params.sort);
+  // created_at then id break ties the same way every time, so a page boundary never repeats or drops a row.
   let query = supabase
     .from("invoices")
     .select("*, customers(company_name)", { count: "exact" })
-    .order("invoice_date", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order(sort.column, { ascending: sort.ascending, nullsFirst: false })
+    .order("created_at", { ascending: sort.ascending })
+    .order("id", { ascending: sort.ascending });
 
   if (params.status === "overdue") {
     const today = new Date().toISOString().slice(0, 10);
