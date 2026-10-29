@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { findSort, QUOTE_SORT_OPTIONS } from "@/lib/list-sort";
+import { findSort, QUOTE_SORT_OPTIONS, sortClauses } from "@/lib/list-sort";
 import type { QuoteSearchInput } from "@/lib/validations/quotes";
 import type { Tables } from "@/types/database";
 
@@ -27,20 +27,18 @@ export async function listQuotes(params: QuoteSearchInput): Promise<QuoteListPag
   const from = (params.page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const sort = findSort(QUOTE_SORT_OPTIONS, params.sort);
-  // created_at then id break ties the same way every time, so a page boundary never repeats or drops a row.
-  let query = supabase
-    .from("quotes")
-    .select("*, customers(company_name)", { count: "exact" })
-    .order(sort.column, { ascending: sort.ascending, nullsFirst: false })
-    .order("created_at", { ascending: sort.ascending })
-    .order("id", { ascending: sort.ascending });
+  let query = supabase.from("quotes").select("*, customers(company_name)", { count: "exact" });
 
   if (params.status !== "all") query = query.eq("status", params.status);
   if (params.q) {
     const likeEscaped = params.q.replace(/[%_]/g, "\\$&");
     const term = likeEscaped.replace(/["\\]/g, "\\$&");
     query = query.or(`quote_number.ilike."%${term}%",reference.ilike."%${term}%"`);
+  }
+
+  // The trailing tie-breakers make the order identical every time, so a page boundary never repeats or drops a row.
+  for (const clause of sortClauses(findSort(QUOTE_SORT_OPTIONS, params.sort))) {
+    query = query.order(clause.column, { ascending: clause.ascending, nullsFirst: false });
   }
 
   const { data, count, error } = await query.range(from, to);

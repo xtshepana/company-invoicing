@@ -11,6 +11,7 @@ import { PaginationBar } from "@/components/shared/pagination-bar";
 import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
 import { listCreditNotes } from "@/server/services/credit-notes";
 import { creditNoteSearchSchema, CREDIT_NOTE_STATUS_LABELS } from "@/lib/validations/credit-notes";
+import { CREDIT_NOTE_DEFAULT_SORT, CREDIT_NOTE_SORT_OPTIONS } from "@/lib/list-sort";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 
@@ -40,6 +41,7 @@ export default async function CreditNotesPage({ searchParams }: CreditNotesPageP
     const sp = new URLSearchParams();
     if (params.q) sp.set("q", params.q);
     if (params.status !== "all") sp.set("status", params.status);
+    if (params.sort !== CREDIT_NOTE_DEFAULT_SORT) sp.set("sort", params.sort);
     sp.set("page", String(page));
     return `/credit-notes?${sp.toString()}`;
   }
@@ -69,6 +71,12 @@ export default async function CreditNotesPage({ searchParams }: CreditNotesPageP
               { value: "issued", label: "Issued" },
               { value: "cancelled", label: "Cancelled" },
             ],
+          },
+          {
+            param: "sort",
+            value: params.sort,
+            options: CREDIT_NOTE_SORT_OPTIONS.map(({ value, label }) => ({ value, label })),
+            className: "w-full sm:w-60",
           },
         ]}
       />

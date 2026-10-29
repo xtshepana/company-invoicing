@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { findSort, PAYMENT_SORT_OPTIONS, sortClauses } from "@/lib/list-sort";
 import type { PaymentSearchInput } from "@/lib/validations/payments";
 import type { Tables } from "@/types/database";
 
@@ -28,16 +29,17 @@ export async function listPayments(params: PaymentSearchInput): Promise<PaymentL
   const from = (params.page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  let query = supabase
-    .from("payments")
-    .select("*, customers(company_name)", { count: "exact" })
-    .order("payment_date", { ascending: false })
-    .order("created_at", { ascending: false });
+  let query = supabase.from("payments").select("*, customers(company_name)", { count: "exact" });
 
   if (params.q) {
     const likeEscaped = params.q.replace(/[%_]/g, "\\$&");
     const term = likeEscaped.replace(/["\\]/g, "\\$&");
     query = query.or(`bank_reference.ilike."%${term}%",description.ilike."%${term}%"`);
+  }
+
+  // The trailing tie-breakers make the order identical every time, so a page boundary never repeats or drops a row.
+  for (const clause of sortClauses(findSort(PAYMENT_SORT_OPTIONS, params.sort))) {
+    query = query.order(clause.column, { ascending: clause.ascending, nullsFirst: false });
   }
 
   const { data, count, error } = await query.range(from, to);

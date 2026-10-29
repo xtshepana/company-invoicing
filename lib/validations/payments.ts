@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PAYMENT_DEFAULT_SORT, PAYMENT_SORT_VALUES } from "@/lib/list-sort";
 
 export const PAYMENT_METHODS = ["eft", "cash", "card", "debit_order", "instant_eft", "other"] as const;
 
@@ -39,6 +40,8 @@ export type ApplyCreditInput = z.infer<typeof applyCreditSchema>;
 
 export const paymentSearchSchema = z.object({
   q: z.string().trim().max(200).optional(),
+  // An unknown value (old bookmark, edited link) falls back to the default rather than erroring the page.
+  sort: z.enum(PAYMENT_SORT_VALUES).catch(PAYMENT_DEFAULT_SORT),
   page: z.coerce.number().int().min(1).default(1),
 });
 export type PaymentSearchInput = z.infer<typeof paymentSearchSchema>;

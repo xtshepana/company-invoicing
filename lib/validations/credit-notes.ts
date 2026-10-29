@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { lineItemsArraySchema } from "@/lib/validations/line-items";
+import { CREDIT_NOTE_DEFAULT_SORT, CREDIT_NOTE_SORT_VALUES } from "@/lib/list-sort";
 
 export const creditNoteSchema = z.object({
   customer_id: z.string().uuid("Choose a customer."),
@@ -24,6 +25,8 @@ export const CREDIT_NOTE_STATUS_LABELS: Record<(typeof CREDIT_NOTE_STATUSES)[num
 export const creditNoteSearchSchema = z.object({
   q: z.string().trim().max(200).optional(),
   status: z.enum([...CREDIT_NOTE_STATUSES, "all"] as const).default("all"),
+  // An unknown value (old bookmark, edited link) falls back to the default rather than erroring the page.
+  sort: z.enum(CREDIT_NOTE_SORT_VALUES).catch(CREDIT_NOTE_DEFAULT_SORT),
   page: z.coerce.number().int().min(1).default(1),
 });
 export type CreditNoteSearchInput = z.infer<typeof creditNoteSearchSchema>;

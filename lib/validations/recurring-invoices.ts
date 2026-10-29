@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { lineItemsArraySchema } from "@/lib/validations/line-items";
+import { RECURRING_DEFAULT_SORT, RECURRING_SORT_VALUES } from "@/lib/list-sort";
 
 export const RECURRING_FREQUENCIES = [
   "weekly",
@@ -48,6 +49,8 @@ export const RECURRING_STATUSES = ["active", "paused", "cancelled"] as const;
 export const recurringInvoiceSearchSchema = z.object({
   q: z.string().trim().max(200).optional(),
   status: z.enum([...RECURRING_STATUSES, "all"] as const).default("active"),
+  // An unknown value (old bookmark, edited link) falls back to the default rather than erroring the page.
+  sort: z.enum(RECURRING_SORT_VALUES).catch(RECURRING_DEFAULT_SORT),
   page: z.coerce.number().int().min(1).default(1),
 });
 export type RecurringInvoiceSearchInput = z.infer<typeof recurringInvoiceSearchSchema>;

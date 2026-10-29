@@ -12,6 +12,7 @@ import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
 import { listPayments } from "@/server/services/payments";
 import { paymentSearchSchema } from "@/lib/validations/payments";
 import { PAYMENT_METHOD_LABELS } from "@/lib/validations/payments";
+import { PAYMENT_DEFAULT_SORT, PAYMENT_SORT_OPTIONS } from "@/lib/list-sort";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 
@@ -39,6 +40,7 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
   function buildHref(page: number) {
     const sp = new URLSearchParams();
     if (params.q) sp.set("q", params.q);
+    if (params.sort !== PAYMENT_DEFAULT_SORT) sp.set("sort", params.sort);
     sp.set("page", String(page));
     return `/payments?${sp.toString()}`;
   }
@@ -55,7 +57,18 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
         </Button>
       </div>
 
-      <ListFilters searchValue={params.q} searchPlaceholder="Search by reference or description…" selects={[]} />
+      <ListFilters
+        searchValue={params.q}
+        searchPlaceholder="Search by reference or description…"
+        selects={[
+          {
+            param: "sort",
+            value: params.sort,
+            options: PAYMENT_SORT_OPTIONS.map(({ value, label }) => ({ value, label })),
+            className: "w-full sm:w-60",
+          },
+        ]}
+      />
 
       <Card>
         <CardContent className="p-0">
