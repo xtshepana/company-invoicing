@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { CREDIT_NOTE_SORT_OPTIONS, findSort, sortClauses } from "@/lib/list-sort";
 import type { CreditNoteSearchInput } from "@/lib/validations/credit-notes";
 import type { Tables } from "@/types/database";
 
@@ -32,9 +33,7 @@ export async function listCreditNotes(params: CreditNoteSearchInput): Promise<Cr
 
   let query = supabase
     .from("credit_notes")
-    .select("*, customers(company_name), invoices(invoice_number)", { count: "exact" })
-    .order("credit_note_date", { ascending: false })
-    .order("created_at", { ascending: false });
+    .select("*, customers(company_name), invoices(invoice_number)", { count: "exact" });
 
   if (params.status !== "all") {
     query = query.eq("status", params.status);
@@ -43,6 +42,11 @@ export async function listCreditNotes(params: CreditNoteSearchInput): Promise<Cr
     const likeEscaped = params.q.replace(/[%_]/g, "\\$&");
     const term = likeEscaped.replace(/["\\]/g, "\\$&");
     query = query.or(`credit_note_number.ilike."%${term}%",reason.ilike."%${term}%"`);
+  }
+
+  // The trailing tie-breakers make the order identical every time, so a page boundary never repeats or drops a row.
+  for (const clause of sortClauses(findSort(CREDIT_NOTE_SORT_OPTIONS, params.sort))) {
+    query = query.order(clause.column, { ascending: clause.ascending, nullsFirst: false });
   }
 
   const { data, count, error } = await query.range(from, to);

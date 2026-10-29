@@ -262,7 +262,7 @@ describe("listRecurringInvoices", () => {
     state.allRows = state.pageRows;
     kindForNextQuery = "list";
 
-    const page = await listRecurringInvoices({ q: "", status: "active", page: 1 });
+    const page = await listRecurringInvoices({ q: "", status: "active", sort: "next_asc", page: 1 });
 
     expect(page.rows.map((row) => row.amount)).toEqual(["570.00", "250.00"]);
     expect(page.rows[0]).not.toHaveProperty("recurring_invoice_items");

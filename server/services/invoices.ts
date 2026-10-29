@@ -3,7 +3,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { deliverableEmail } from "@/lib/notices";
 import type { DraftToSend } from "@/lib/bulk-send";
-import { findSort, INVOICE_SORT_OPTIONS } from "@/lib/list-sort";
+import { findSort, INVOICE_SORT_OPTIONS, sortClauses } from "@/lib/list-sort";
 import type { InvoiceSearchInput } from "@/lib/validations/invoices";
 import type { Tables } from "@/types/database";
 
@@ -29,14 +29,7 @@ export async function listInvoices(params: InvoiceSearchInput): Promise<InvoiceL
   const from = (params.page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const sort = findSort(INVOICE_SORT_OPTIONS, params.sort);
-  // created_at then id break ties the same way every time, so a page boundary never repeats or drops a row.
-  let query = supabase
-    .from("invoices")
-    .select("*, customers(company_name)", { count: "exact" })
-    .order(sort.column, { ascending: sort.ascending, nullsFirst: false })
-    .order("created_at", { ascending: sort.ascending })
-    .order("id", { ascending: sort.ascending });
+  let query = supabase.from("invoices").select("*, customers(company_name)", { count: "exact" });
 
   if (params.status === "overdue") {
     const today = new Date().toISOString().slice(0, 10);
@@ -49,6 +42,11 @@ export async function listInvoices(params: InvoiceSearchInput): Promise<InvoiceL
     const likeEscaped = params.q.replace(/[%_]/g, "\\$&");
     const term = likeEscaped.replace(/["\\]/g, "\\$&");
     query = query.or(`invoice_number.ilike."%${term}%",reference.ilike."%${term}%"`);
+  }
+
+  // The trailing tie-breakers make the order identical every time, so a page boundary never repeats or drops a row.
+  for (const clause of sortClauses(findSort(INVOICE_SORT_OPTIONS, params.sort))) {
+    query = query.order(clause.column, { ascending: clause.ascending, nullsFirst: false });
   }
 
   const { data, count, error } = await query.range(from, to);
@@ -64,6 +62,8 @@ export async function listDraftsToSend(): Promise<DraftToSend[]> {
     .from("invoices")
     .select("id, invoice_number, total, customers(company_name, email)")
     .eq("status", "draft")
+    // The confirm screen and the sending order both follow this: customers A to Z.
+    .order("customers(company_name)", { ascending: true })
     .order("invoice_number", { ascending: true })
     .limit(500);
   if (error) throw new Error("Unable to load draft invoices.");

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { findSort, RECURRING_SORT_OPTIONS, sortClauses } from "@/lib/list-sort";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { toDbNumeric } from "@/lib/money";
 import { recurringInvoiceAmount, summarizeRecurring, type RecurringSummary } from "@/lib/recurring-totals";
@@ -40,13 +41,14 @@ export async function listRecurringInvoices(params: RecurringInvoiceSearchInput)
   const from = (params.page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const query = applyFilters(
-    supabase
-      .from("recurring_invoices")
-      .select(`*, customers(company_name), recurring_invoice_items(${PRICE_COLUMNS})`, { count: "exact" })
-      .order("next_invoice_date", { ascending: true }),
-    params
-  );
+  let ordered = supabase
+    .from("recurring_invoices")
+    .select(`*, customers(company_name), recurring_invoice_items(${PRICE_COLUMNS})`, { count: "exact" });
+  // The trailing tie-breakers make the order identical every time, so a page boundary never repeats or drops a row.
+  for (const clause of sortClauses(findSort(RECURRING_SORT_OPTIONS, params.sort))) {
+    ordered = ordered.order(clause.column, { ascending: clause.ascending, nullsFirst: false });
+  }
+  const query = applyFilters(ordered, params);
 
   const { data, count, error } = await query.range(from, to);
   if (error) throw new Error("Unable to load recurring invoices.");
@@ -64,7 +66,7 @@ export async function listRecurringInvoices(params: RecurringInvoiceSearchInput)
 /** The status / search filters shared by the page of rows and the all-clients total, so the two always agree. */
 function applyFilters<T extends { eq: (column: string, value: string) => T; ilike: (column: string, pattern: string) => T }>(
   query: T,
-  params: RecurringInvoiceSearchInput
+  params: Omit<RecurringInvoiceSearchInput, "sort">
 ): T {
   let filtered = query;
   if (params.status !== "all") filtered = filtered.eq("status", params.status);
@@ -82,7 +84,7 @@ const SUMMARY_BATCH = 1000; // PostgREST returns at most 1000 rows a request, so
  * The total across ALL clients that match the filters - not just the 20 on the page being viewed. Each recurring
  * invoice is priced exactly as the daily job will bill it, then everything is added up as a monthly figure.
  */
-export async function getRecurringSummary(params: RecurringInvoiceSearchInput): Promise<RecurringSummary> {
+export async function getRecurringSummary(params: Omit<RecurringInvoiceSearchInput, "sort">): Promise<RecurringSummary> {
   const supabase = await createSupabaseServerClient();
   const { vat_registered: vatRegistered } = await getCompanySettings();
   const inputs: Parameters<typeof summarizeRecurring>[0] = [];

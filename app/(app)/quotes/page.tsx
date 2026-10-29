@@ -11,7 +11,7 @@ import { PaginationBar } from "@/components/shared/pagination-bar";
 import { getCurrentProfile, hasModuleAccess } from "@/server/services/auth";
 import { listQuotes } from "@/server/services/quotes";
 import { quoteSearchSchema, QUOTE_STATUS_LABELS, getQuoteDisplayStatus } from "@/lib/validations/quotes";
-import { DEFAULT_SORT, QUOTE_SORT_OPTIONS } from "@/lib/list-sort";
+import { QUOTE_DEFAULT_SORT, QUOTE_SORT_OPTIONS } from "@/lib/list-sort";
 import { getCompanySettings } from "@/lib/config/system-settings";
 import { formatCurrency } from "@/lib/money";
 
@@ -34,7 +34,7 @@ export default async function QuotesPage({ searchParams }: QuotesPageProps) {
     const sp = new URLSearchParams();
     if (params.q) sp.set("q", params.q);
     if (params.status !== "all") sp.set("status", params.status);
-    if (params.sort !== DEFAULT_SORT) sp.set("sort", params.sort);
+    if (params.sort !== QUOTE_DEFAULT_SORT) sp.set("sort", params.sort);
     sp.set("page", String(page));
     return `/quotes?${sp.toString()}`;
   }
